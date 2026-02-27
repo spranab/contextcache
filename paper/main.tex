@@ -37,9 +37,9 @@
 
 % ===========================================================================
 \begin{abstract}
-Tool-augmented large language models reprocess identical tool schemas on every request, wasting the majority of prefill computation on unchanging context. We present \textbf{ContextCache}, a persistent KV cache system that eliminates this redundancy through content-hash addressed group caching. Given a set of tool schemas, ContextCache computes their combined KV states once, stores them persistently (keyed by SHA-256 of the sorted schema texts), and restores them on all subsequent requests---reducing time-to-first-token (TTFT) from 787\,ms to 114\,ms (6.9$\times$ speedup) on Qwen3-8B with 20 tools. Crucially, the cached path produces \emph{identical} outputs to full prefill: Tool Selection Accuracy, Parameter F1, and Exact Match are the same across all three evaluation splits.
+Tool-augmented large language models reprocess identical tool schemas on every request, wasting the majority of prefill computation on unchanging context. This paper presents \textbf{ContextCache}, a persistent KV cache system that eliminates this redundancy through content-hash addressed group caching. Given a set of tool schemas, ContextCache computes their combined KV states once, stores them persistently (keyed by SHA-256 of the sorted schema texts), and restores them on all subsequent requests---reducing time-to-first-token (TTFT) from 787\,ms to 114\,ms (6.9$\times$ speedup) on Qwen3-8B with 20 tools. Crucially, the cached path produces \emph{identical} outputs to full prefill: Tool Selection Accuracy, Parameter F1, and Exact Match are the same across all three evaluation splits.
 
-We also report an important negative result: an attempted per-tool composition approach based on No Positional Encoding (NoPE) key capture with deferred RoPE application---while mathematically correct (RoPE verification shows max difference of 0.000000 across all 36 layers)---fails catastrophically when tools are composed (TSA drops to 0.1), demonstrating that cross-tool attention dependencies in standard transformers prevent independent per-tool KV decomposition.
+An important negative result is also reported: an attempted per-tool composition approach based on No Positional Encoding (NoPE) key capture with deferred RoPE application---while mathematically correct (RoPE verification shows max difference of 0.000000 across all 36 layers)---fails catastrophically when tools are composed (TSA drops to 0.1), demonstrating that cross-tool attention dependencies in standard transformers prevent independent per-tool KV decomposition.
 
 ContextCache includes a multi-model adapter layer (supporting Qwen, Llama, and Mistral families) and a production FastAPI serving system with web UI. The one-time compilation cost of 1.4\,s is amortized after just 2.1 requests.
 \end{abstract}
@@ -52,17 +52,17 @@ In production deployments of tool-augmented LLMs, the same set of tool schemas--
 
 This paper addresses the question: \textit{can we cache the KV states for tool schemas persistently and reuse them across requests without any loss in output quality?}
 
-We explore two approaches:
+Two approaches are explored:
 
 \paragraph{Approach 1: Per-tool NoPE composition (fails).}
-We capture pre-RoPE (position-independent) key states for each tool independently, store them in a content-hash addressed KV store, and apply deferred RoPE rotations at composition time to assign correct absolute positions. The RoPE mathematics is provably correct---we verify exact match across all 36 layers of Qwen3-8B~\citep{qwen2025qwen3}. However, \textbf{composition fails}: when tools compiled independently are combined, the model's TSA drops to 0.1 (seen split) or 0.0 (unseen splits), compared to 0.850 for full prefill. The root cause is that self-attention in early transformer layers creates cross-tool dependencies that cannot be captured by independent compilation.
+Pre-RoPE (position-independent) key states are captured for each tool independently, stored in a content-hash addressed KV store, and deferred RoPE rotations are applied at composition time to assign correct absolute positions. The RoPE mathematics is provably correct---exact match is verified across all 36 layers of Qwen3-8B~\citep{qwen2025qwen3}. However, \textbf{composition fails}: when tools compiled independently are combined, the model's TSA drops to 0.1 (seen split) or 0.0 (unseen splits), compared to 0.850 for full prefill. The root cause is that self-attention in early transformer layers creates cross-tool dependencies that cannot be captured by independent compilation.
 
 \paragraph{Approach 2: Group caching (works).}
-We cache the complete KV state for the entire tool group (system prompt + all tool schemas) as a single unit. The cache key is the SHA-256 hash of the sorted tool schema texts. On cache hit, only the user query suffix needs prefill. This approach \textbf{matches full prefill quality exactly} while reducing TTFT by 6.9$\times$.
+The complete KV state for the entire tool group (system prompt + all tool schemas) is cached as a single unit. The cache key is the SHA-256 hash of the sorted tool schema texts. On cache hit, only the user query suffix needs prefill. This approach \textbf{matches full prefill quality exactly} while reducing TTFT by 6.9$\times$.
 
 Both the negative and positive results are contributions. The negative result provides empirical evidence that KV states in standard transformers are not compositionally decomposable at the tool level---a finding relevant to KV cache optimization research broadly. The positive result demonstrates a practical, zero-degradation caching system with content-hash addressing and persistent storage.
 
-Our contributions:
+The contributions of this work:
 \begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=1pt]
 \item A content-hash addressed persistent KV store with automatic invalidation and disk/GPU tiering.
 \item NoPE key capture via monkey-patched \texttt{apply\_rotary\_pos\_emb} that works with 4-bit quantized models.
@@ -132,21 +132,21 @@ These position-independent keys are stored alongside the (unrotated) values. At 
 where $p_t$ is the absolute position assigned at composition time, $\theta$ is the RoPE base frequency ($10^6$ for Qwen3-8B), and $\text{rotate\_half}$ is the standard RoPE half-dimension swap.
 
 \paragraph{Verification.}
-We verify the RoPE mathematics by comparing: (a)~standard forward pass with RoPE applied at compile time, vs.\ (b)~NoPE capture followed by deferred RoPE. The maximum element-wise difference across all 36 layers is 0.000000 (within floating-point precision). \textbf{The math is correct.}
+The RoPE mathematics is verified by comparing: (a)~standard forward pass with RoPE applied at compile time, vs.\ (b)~NoPE capture followed by deferred RoPE. The maximum element-wise difference across all 36 layers is 0.000000 (within floating-point precision). \textbf{The math is correct.}
 
 \subsection{Why Per-Tool NoPE Fails}
 \label{sec:nope-fails}
 
 Despite correct RoPE mathematics, per-tool composition fails catastrophically (\Cref{tab:main-results}). The root cause is \textbf{cross-tool attention dependencies}: in standard multi-head self-attention, each token's key representation at layer $l$ depends on all tokens visible at layers $1, \ldots, l{-}1$. When tool schemas are compiled independently, each tool's keys at layer $l$ reflect only that tool's tokens---missing the cross-tool context that full prefill provides.
 
-We quantify this by measuring cosine similarity between logits produced by independently-composed NoPE KV versus full prefill: the similarity is only 0.654, far from the 1.0 needed for equivalent behavior. The resulting TSA drops to 0.100 (seen), 0.000 (held-out), and 0.000 (unseen).
+This is quantified by measuring cosine similarity between logits produced by independently-composed NoPE KV versus full prefill: the similarity is only 0.654, far from the 1.0 needed for equivalent behavior. The resulting TSA drops to 0.100 (seen), 0.000 (held-out), and 0.000 (unseen).
 
-This is a fundamental limitation of self-attention-based architectures, not a bug in our implementation. Per-tool KV decomposition would require attention patterns that don't cross tool boundaries---a property that standard transformers do not have.
+This is a fundamental limitation of self-attention-based architectures, not a bug in the implementation. Per-tool KV decomposition would require attention patterns that don't cross tool boundaries---a property that standard transformers do not have.
 
 \subsection{Group Caching: The Working Solution}
 \label{sec:group-cache}
 
-Given the failure of per-tool composition, we cache at the \emph{group} level: the entire prefix (system prompt + all tool schemas) is forwarded once, and the complete KV cache is stored as a unit.
+Given the failure of per-tool composition, caching is done at the \emph{group} level: the entire prefix (system prompt + all tool schemas) is forwarded once, and the complete KV cache is stored as a unit.
 
 \paragraph{Storage.}
 The KV cache for each group is stored as a PyTorch \texttt{.pt} file containing per-layer (key, value) tensor pairs, along with the prefix length. An \texttt{index.json} file maps cache keys to metadata (tool names, creation time, token counts). The storage layout:
@@ -169,7 +169,7 @@ Because the cache key is a hash of the tool schema content (\Cref{eq:cache-key})
 \subsection{Model Adapter Pattern}
 \label{sec:adapter}
 
-To support multiple model families, we introduce an abstract \texttt{ModelAdapter} class that encapsulates model-specific details:
+To support multiple model families, an abstract \texttt{ModelAdapter} class encapsulates model-specific details:
 
 \begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
 \item \textbf{Prompt formatting}: Chat template application (e.g., Qwen's \texttt{<tools>} XML, Llama's function-calling format, Mistral's \texttt{[AVAILABLE\_TOOLS]}).
@@ -365,7 +365,7 @@ Metric & Value \\
 \label{sec:discussion}
 
 \paragraph{The NoPE negative result.}
-Our finding that per-tool NoPE composition fails despite correct RoPE mathematics is significant for the KV cache optimization community. It demonstrates that in standard transformers, KV states at layer $l$ are functions of \emph{all} tokens visible at layers $1, \ldots, l{-}1$, not just the tokens from the current segment. This means that truly composable KV caching at the individual-tool level requires architectural changes (such as the separate encoder in ToolFormerMicro~\citep{toolformermicro2026}) rather than post-hoc decomposition of standard attention.
+The finding that per-tool NoPE composition fails despite correct RoPE mathematics is significant for the KV cache optimization community. It demonstrates that in standard transformers, KV states at layer $l$ are functions of \emph{all} tokens visible at layers $1, \ldots, l{-}1$, not just the tokens from the current segment. This means that truly composable KV caching at the individual-tool level requires architectural changes (such as the separate encoder in ToolFormerMicro~\citep{toolformermicro2026}) rather than post-hoc decomposition of standard attention.
 
 \paragraph{Group caching as the correct abstraction.}
 In practice, tool sets change infrequently---typically when APIs are versioned, new tools are added, or deprecated tools are removed. These events happen on the timescale of days to weeks, while user requests arrive on the timescale of seconds. Group-level caching with content-hash invalidation naturally captures this usage pattern: the compilation cost (${\sim}1.4$\,s for 20 tools) is negligible compared to the savings across thousands of subsequent requests.
@@ -380,9 +380,9 @@ The 401\,MB GPU memory for 20 tools' KV cache is significant but manageable on m
 \section{Conclusion}
 \label{sec:conclusion}
 
-We presented ContextCache, a persistent KV cache system with content-hash addressing that provides zero-degradation tool schema caching with 6.9$\times$ TTFT speedup. The system requires no model training or modification---it works with any supported model family out of the box.
+This paper presented ContextCache, a persistent KV cache system with content-hash addressing that provides zero-degradation tool schema caching with 6.9$\times$ TTFT speedup. The system requires no model training or modification---it works with any supported model family out of the box.
 
-Our negative result on per-tool NoPE composition provides an important empirical finding: cross-attention dependencies in standard transformers prevent independent per-tool KV decomposition, even when positional encoding is handled correctly. This suggests that achieving true per-tool composability requires architectural changes (as in ToolFormerMicro~\citep{toolformermicro2026}) rather than caching strategies alone.
+The negative result on per-tool NoPE composition provides an important empirical finding: cross-attention dependencies in standard transformers prevent independent per-tool KV decomposition, even when positional encoding is handled correctly. This suggests that achieving true per-tool composability requires architectural changes (as in ToolFormerMicro~\citep{toolformermicro2026}) rather than caching strategies alone.
 
 ContextCache is released as open-source software with a multi-model adapter layer, persistent disk/GPU cache, FastAPI serving, and a browser-based web UI. Future work includes differential group caching (minimizing recomputation when one tool changes), integration with PagedAttention~\citep{kwon2023vllm} for production serving, and extension to other context types (code files, documents, system prompts).
 
@@ -398,7 +398,7 @@ ContextCache is released as open-source software with a multi-model adapter laye
 \section{RoPE Verification}
 \label{app:rope}
 
-We verify the correctness of our deferred RoPE implementation by comparing two paths:
+The correctness of the deferred RoPE implementation is verified by comparing two paths:
 
 \begin{enumerate}[leftmargin=*]
 \item \textbf{Standard path}: Forward pass with RoPE applied at compile time (positions 0, 1, \ldots, $T{-}1$).
