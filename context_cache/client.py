@@ -31,7 +31,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+import time
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+_RETRY_STATUS = frozenset({429, 500, 502, 503, 504})
+_MAX_RETRIES = 3
 
 
 @dataclass
@@ -88,6 +94,17 @@ class ContextCacheClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self._session = requests.Session()
+        # Retry with exponential backoff on transient errors
+        retry = Retry(
+            total=_MAX_RETRIES,
+            backoff_factor=1.0,
+            status_forcelist=_RETRY_STATUS,
+            allowed_methods=["GET", "POST", "DELETE"],
+            raise_on_status=False,
+        )
+        adapter = HTTPAdapter(max_retries=retry)
+        self._session.mount("http://", adapter)
+        self._session.mount("https://", adapter)
         if api_key:
             self._session.headers["X-API-Key"] = api_key
 
@@ -147,6 +164,11 @@ class ContextCacheClient:
         r.raise_for_status()
         data = r.json()
         selections = data.get("selections", [])
+        if not selections:
+            import logging
+            logging.getLogger("contextcache").warning(
+                "No tool selections returned for query: %s", query[:100]
+            )
         first = selections[0] if selections else {"tool_name": "unknown", "arguments": {}}
         return RouteResult(
             tool_name=first["tool_name"],

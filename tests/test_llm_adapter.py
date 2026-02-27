@@ -74,16 +74,19 @@ class TestClaudeAdapterFormatting:
         tool_result_id = messages[2]["content"][0]["tool_use_id"]
         assert tool_use_id == tool_result_id
 
-    def test_tool_use_id_is_deterministic(self):
-        """Same tool name produces same ID."""
+    def test_tool_use_id_is_unique_per_call(self):
+        """Each call produces a unique ID (UUID-based to avoid collisions)."""
         m1 = self.adapter.format_messages("get_weather", {}, {}, "q1")
         m2 = self.adapter.format_messages("get_weather", {}, {}, "q2")
-        assert m1[1]["content"][0]["id"] == m2[1]["content"][0]["id"]
-
-    def test_different_tools_different_ids(self):
-        m1 = self.adapter.format_messages("get_weather", {}, {}, "q")
-        m2 = self.adapter.format_messages("track_order", {}, {}, "q")
         assert m1[1]["content"][0]["id"] != m2[1]["content"][0]["id"]
+        assert m1[1]["content"][0]["id"].startswith("toolu_")
+        assert m2[1]["content"][0]["id"].startswith("toolu_")
+
+    def test_tool_use_id_format(self):
+        m1 = self.adapter.format_messages("get_weather", {}, {}, "q")
+        tool_id = m1[1]["content"][0]["id"]
+        assert tool_id.startswith("toolu_")
+        assert len(tool_id) == len("toolu_") + 12  # prefix + 12 hex chars
 
     def test_string_tool_result(self):
         """tool_result can be a string (not just dict)."""

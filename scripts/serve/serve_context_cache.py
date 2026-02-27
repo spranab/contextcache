@@ -75,6 +75,7 @@ sys.path.insert(0, str(ROOT))
 class ToolsRequest(BaseModel):
     tools: list[dict] = Field(
         ...,
+        min_length=1,
         description="List of tool schemas in OpenAI function-calling format.",
     )
 
@@ -90,7 +91,7 @@ class ToolsResponse(BaseModel):
 
 
 class QueryRequest(BaseModel):
-    query: str = Field(..., description="User query text")
+    query: str = Field(..., min_length=1, max_length=4096, description="User query text")
     max_new_tokens: int = Field(256, ge=1, le=2048)
 
 
@@ -111,8 +112,8 @@ class CompareResponse(BaseModel):
 
 
 class ToolsRequestV2(BaseModel):
-    tool_id: str = Field(..., description="Unique namespace for this tool set")
-    tools: list[dict] = Field(..., description="Tool schemas in OpenAI function-calling format")
+    tool_id: str = Field(..., min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$", description="Unique namespace for this tool set")
+    tools: list[dict] = Field(..., min_length=1, description="Tool schemas in OpenAI function-calling format")
 
 
 class ToolsResponseV2(BaseModel):
@@ -127,8 +128,8 @@ class ToolsResponseV2(BaseModel):
 
 
 class RouteRequest(BaseModel):
-    tool_id: str = Field(..., description="Which tool set to route against")
-    query: str = Field(..., description="User query text")
+    tool_id: str = Field(..., min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$", description="Which tool set to route against")
+    query: str = Field(..., min_length=1, max_length=4096, description="User query text")
     max_new_tokens: int = Field(256, ge=1, le=2048)
 
 
@@ -146,8 +147,8 @@ class RouteResponse(BaseModel):
 
 
 class QueryRequestV2(BaseModel):
-    tool_id: str = Field(..., description="Which tool set to query against")
-    query: str = Field(..., description="User query text")
+    tool_id: str = Field(..., min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$", description="Which tool set to query against")
+    query: str = Field(..., min_length=1, max_length=4096, description="User query text")
     max_new_tokens: int = Field(256, ge=1, le=2048)
 
 
@@ -159,8 +160,8 @@ class QueryResponseV2(BaseModel):
 
 
 class PipelineRequest(BaseModel):
-    tool_id: str = Field(..., description="Which tool set to route against")
-    query: str = Field(..., description="User query text")
+    tool_id: str = Field(..., min_length=1, max_length=128, pattern=r"^[a-zA-Z0-9_.-]+$", description="Which tool set to route against")
+    query: str = Field(..., min_length=1, max_length=4096, description="User query text")
     llm_format: str = Field("claude", description="LLM provider/format: 'claude', 'openai', or 'raw'")
     tool_executor: str = Field("mock", description="'mock' for simulated results, or URL for real execution")
     max_new_tokens: int = Field(256, ge=1, le=2048)
@@ -330,6 +331,9 @@ class ServerState:
         self.demo_profiles: dict = {}
         self.demo_current_profile: str | None = None
         self._demo_query_counts: dict[str, int] = {}
+        self._demo_group_keys_seen: set[str] = set()
+        # Thread safety
+        self._lock = asyncio.Lock()
 
     def load_model(self, config):
         from context_cache.context_cache import ContextCacheModel
@@ -498,7 +502,7 @@ def _setup_auth():
         import secrets
         temp_key = secrets.token_urlsafe(32)
         _key_store = APIKeyStore()
-        _key_store.add_key(temp_key, name="dev-key", rate_limit=120)
+        _key_store.add_key(temp_key, name="dev-key", rate_limit=120, role="admin")
         print(f"  Auth: generated dev key: {temp_key}")
 
     app.add_middleware(
@@ -553,9 +557,12 @@ def _compile_tool_set(tools: list[dict]) -> tuple[str, list[str], list[str], flo
     per_layer = k0.nelement() * k0.element_size() + v0.nelement() * v0.element_size()
     size_mb = per_layer * len(cached_layers) / (1024 * 1024)
 
-    # Track in memory manager
+    # Track in memory manager and auto-evict if over budget
     if state.memory_manager:
         state.memory_manager.register(group_key, size_mb, tool_names)
+        evicted = state.memory_manager.auto_evict(state.model._group_cache)
+        if evicted:
+            print(f"  Memory manager: evicted {evicted} LRU cache(s)")
 
     return group_key, tool_schemas, tool_names, compile_ms, size_mb, prefix_len, False
 
@@ -575,6 +582,7 @@ async def register_tools(req: ToolsRequest):
         state.registry.register("__default__", req.tools, group_key)
         state._default_tool_id = "__default__"
         state._demo_query_counts["__default__"] = 0
+        state._demo_group_keys_seen.discard(group_key)
         meta = state.demo_recording.get("metadata", {})
 
         return ToolsResponse(
@@ -613,8 +621,11 @@ async def run_query(req: QueryRequest):
 
         tp = state.demo_recording.get("timing_profiles", {})
         cached_tp = tp.get("cached", {})
-        state._demo_query_count += 1
-        is_hit = state._demo_query_count > 1
+        async with state._lock:
+            state._demo_query_count += 1
+            group_key = state.current_group_key or "__default__"
+            is_hit = group_key in state._demo_group_keys_seen
+            state._demo_group_keys_seen.add(group_key)
 
         if is_hit:
             link = _gauss(cached_tp.get("link_ms", {"mean": 2.0, "std": 0.13}), 0)
@@ -817,6 +828,7 @@ async def register_tools_v2(req: ToolsRequestV2):
 
         state.registry.register(req.tool_id, req.tools, group_key)
         state._demo_query_counts[req.tool_id] = 0
+        state._demo_group_keys_seen.discard(group_key)
         meta = state.demo_recording.get("metadata", {})
 
         return ToolsResponseV2(
@@ -866,9 +878,12 @@ async def route_tool(req: RouteRequest):
 
         tp = state.demo_recording.get("timing_profiles", {})
         cached_tp = tp.get("cached", {})
-        count = state._demo_query_counts.get(req.tool_id, 0) + 1
-        state._demo_query_counts[req.tool_id] = count
-        is_hit = count > 1
+        async with state._lock:
+            count = state._demo_query_counts.get(req.tool_id, 0) + 1
+            state._demo_query_counts[req.tool_id] = count
+            group_key_hit = entry.group_key if entry else req.tool_id
+            is_hit = group_key_hit in state._demo_group_keys_seen
+            state._demo_group_keys_seen.add(group_key_hit)
 
         if is_hit:
             link = _gauss(cached_tp.get("link_ms", {"mean": 2.0, "std": 0.13}), 0)
@@ -896,7 +911,8 @@ async def route_tool(req: RouteRequest):
     if state.model is None:
         raise HTTPException(503, "Model not loaded yet")
 
-    entry.query_count += 1
+    async with state._lock:
+        entry.query_count += 1
     t0 = time.perf_counter()
     raw_text, timings = state.model.generate_group_cached(
         context_texts=entry.tool_schemas, user_query=req.query,
@@ -930,9 +946,12 @@ async def run_query_v2(req: QueryRequestV2):
 
         tp = state.demo_recording.get("timing_profiles", {})
         cached_tp = tp.get("cached", {})
-        count = state._demo_query_counts.get(req.tool_id, 0) + 1
-        state._demo_query_counts[req.tool_id] = count
-        is_hit = count > 1
+        async with state._lock:
+            count = state._demo_query_counts.get(req.tool_id, 0) + 1
+            state._demo_query_counts[req.tool_id] = count
+            group_key_hit = entry.group_key if entry else req.tool_id
+            is_hit = group_key_hit in state._demo_group_keys_seen
+            state._demo_group_keys_seen.add(group_key_hit)
 
         if is_hit:
             link = _gauss(cached_tp.get("link_ms", {"mean": 2.0, "std": 0.13}), 0)
@@ -957,7 +976,8 @@ async def run_query_v2(req: QueryRequestV2):
     if state.model is None:
         raise HTTPException(503, "Model not loaded yet")
 
-    entry.query_count += 1
+    async with state._lock:
+        entry.query_count += 1
     t0 = time.perf_counter()
     text, timings = state.model.generate_group_cached(
         context_texts=entry.tool_schemas, user_query=req.query,
@@ -1131,7 +1151,8 @@ async def run_pipeline(req: PipelineRequest):
     else:
         if state.model is None:
             raise HTTPException(503, "Model not loaded yet")
-        entry.query_count += 1
+        async with state._lock:
+            entry.query_count += 1
 
         t0 = time.perf_counter()
         raw_text, route_timings = state.model.generate_group_cached(
