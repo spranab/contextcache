@@ -1,0 +1,30 @@
+model:
+  model_name: "Qwen/Qwen3-8B"
+  load_in_4bit: true
+  bnb_4bit_compute_dtype: "bfloat16"
+  bnb_4bit_quant_type: "nf4"
+  bnb_4bit_use_double_quant: true
+  max_seq_length: 4096
+
+cache:
+  cache_dir: "cache/context_kv"
+  num_dummy_bos: 4
+  preload_to_gpu: true
+  max_gpu_cache_mb: 4000
+
+rope:
+  theta: 1000000
+  max_position: 8192
+
+system_prompt: "You are a helpful assistant with access to the following tools. Use them when appropriate to help the user."
+
+eval:
+  max_examples: 200
+  max_new_tokens: 256
+  catalogs:
+    - data/catalogs/catalog_100.json
+    - data/catalogs/catalog_unseen.json
+  test_splits:
+    - data/processed/test_seen_gisting.jsonl
+    - data/processed/test_held_out_gisting.jsonl
+    - data/processed/test_unseen_gisting.jsonl

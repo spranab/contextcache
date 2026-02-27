@@ -1,0 +1,18 @@
+{
+  "split": "test_seen",
+  "condition": "full_prefill",
+  "num_examples": 25,
+  "num_tool_calls": 20,
+  "num_non_tool": 5,
+  "tool_selection_accuracy": 0.85,
+  "parameter_f1": 0.7156862745098039,
+  "exact_match": 0.55,
+  "false_positive_rate": 0.0,
+  "false_negative_rate": 0.05,
+  "correct_tool": 17,
+  "false_positives": 0,
+  "false_negatives": 1,
+  "avg_link_ms": 0.0,
+  "avg_prefill_ms": 1787.73527600104,
+  "avg_decode_ms": 9181.176796000509
+}

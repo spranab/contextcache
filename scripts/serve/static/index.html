@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextCache Server</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root {
+      --cc-green: #4ade80;
+      --cc-red: #f87171;
+      --cc-yellow: #facc15;
+      --cc-blue: #60a5fa;
+      --cc-dim: #6b7280;
+    }
+    body { margin: 0; padding: 0; }
+    /* Loading overlay */
+    #loading-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(17, 24, 39, 0.95);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      transition: opacity 0.5s;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner {
+      width: 48px; height: 48px;
+      border: 4px solid var(--cc-dim);
+      border-top-color: var(--cc-blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-overlay p { margin-top: 1rem; color: var(--cc-dim); }
+
+    /* Header */
+    header.app-header {
+      padding: 0.75rem 1.5rem;
+      border-bottom: 1px solid var(--pico-muted-border-color);
+      display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 1.25rem; flex-shrink: 0; }
+    .status-bar {
+      display: flex; gap: 1.25rem; align-items: center;
+      font-size: 0.85rem; color: var(--cc-dim); flex-wrap: wrap;
+    }
+    .status-dot {
+      display: inline-block; width: 8px; height: 8px;
+      border-radius: 50%; margin-right: 4px; vertical-align: middle;
+    }
+    .status-dot.green { background: var(--cc-green); }
+    .status-dot.red { background: var(--cc-red); }
+    .status-dot.yellow { background: var(--cc-yellow); }
+
+    /* Main layout */
+    .panels {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 1.5rem; padding: 1.5rem; min-height: calc(100vh - 60px);
+    }
+    @media (max-width: 900px) { .panels { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 8px; padding: 1.25rem;
+      display: flex; flex-direction: column;
+    }
+    .panel h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+
+    /* Tools panel */
+    #tools-input {
+      flex: 1; min-height: 250px; font-family: monospace;
+      font-size: 0.8rem; resize: vertical;
+    }
+    .btn-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
+    .btn-row button { flex: 1; min-width: 100px; }
+    #tools-result {
+      margin-top: 0.75rem; padding: 0.75rem;
+      border-radius: 6px; font-size: 0.85rem;
+      background: var(--pico-card-sectioning-background-color);
+      display: none;
+    }
+    #tools-result.show { display: block; }
+
+    /* Query panel */
+    #query-input { font-size: 0.95rem; }
+    #query-send { margin-top: 0.5rem; }
+    #response-area {
+      flex: 1; margin-top: 1rem; padding: 1rem;
+      border-radius: 6px; font-size: 0.9rem; white-space: pre-wrap;
+      background: var(--pico-card-sectioning-background-color);
+      min-height: 200px; overflow-y: auto;
+    }
+    .timings {
+      margin-top: 0.75rem; font-size: 0.8rem; color: var(--cc-dim);
+      display: flex; gap: 1rem; flex-wrap: wrap;
+    }
+    .timings span { white-space: nowrap; }
+    .badge {
+      display: inline-block; padding: 2px 8px;
+      border-radius: 4px; font-size: 0.75rem; font-weight: 600;
+    }
+    .badge.hit { background: var(--cc-green); color: #000; }
+    .badge.miss { background: var(--cc-yellow); color: #000; }
+    .badge.error { background: var(--cc-red); color: #fff; }
+
+    /* Alert */
+    .alert {
+      padding: 0.5rem 0.75rem; border-radius: 6px;
+      margin-top: 0.5rem; font-size: 0.85rem;
+    }
+    .alert.error { background: rgba(248,113,113,0.15); color: var(--cc-red); }
+  </style>
+</head>
+<body>
+
+<!-- Loading overlay -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-text">Loading model...</p>
+</div>
+
+<!-- Header -->
+<header class="app-header">
+  <h1>ContextCache</h1>
+  <div class="status-bar">
+    <span><span class="status-dot" id="health-dot"></span> <span id="health-text">connecting...</span></span>
+    <span id="status-model"></span>
+    <span id="status-tools"></span>
+    <span id="status-cache"></span>
+  </div>
+</header>
+
+<!-- Main panels -->
+<div class="panels">
+  <!-- Tools Panel -->
+  <div class="panel">
+    <h2>Tools</h2>
+    <textarea id="tools-input" placeholder='Paste tool schemas in OpenAI format, e.g.:\n[\n  {"type": "function", "function": {"name": "...", ...}}\n]'></textarea>
+    <div class="btn-row">
+      <button id="btn-register" onclick="registerTools()">Register Tools</button>
+      <button id="btn-sample" class="secondary" onclick="loadSample()">Load Sample</button>
+      <button id="btn-clear" class="secondary" onclick="clearTools()">Clear Tools</button>
+    </div>
+    <div id="tools-result"></div>
+  </div>
+
+  <!-- Query Panel -->
+  <div class="panel">
+    <h2>Query</h2>
+    <input type="text" id="query-input" placeholder="Ask a question, e.g. 'What is the weather in NYC?'" onkeydown="if(event.key==='Enter')sendQuery()">
+    <button id="query-send" onclick="sendQuery()">Send</button>
+    <div id="response-area">Response will appear here...</div>
+    <div class="timings" id="timings"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+
+// --- Loading overlay ---
+let loadingInterval = null;
+
+function startHealthPolling() {
+  const overlay = document.getElementById('loading-overlay');
+  const text = document.getElementById('loading-text');
+  let dots = 0;
+
+  loadingInterval = setInterval(async () => {
+    dots = (dots + 1) % 4;
+    try {
+      const r = await fetch(`${API}/health`);
+      const data = await r.json();
+      if (data.model_loaded) {
+        clearInterval(loadingInterval);
+        overlay.classList.add('hidden');
+        setTimeout(() => overlay.style.display = 'none', 600);
+        refreshStatus();
+        startStatusPolling();
+        return;
+      }
+      text.textContent = 'Loading model' + '.'.repeat(dots);
+    } catch (e) {
+      text.textContent = 'Connecting to server' + '.'.repeat(dots);
+    }
+  }, 2000);
+}
+
+// --- Status polling ---
+let statusInterval = null;
+
+function startStatusPolling() {
+  statusInterval = setInterval(refreshStatus, 10000);
+}
+
+async function refreshStatus() {
+  const dot = document.getElementById('health-dot');
+  const htxt = document.getElementById('health-text');
+  const smodel = document.getElementById('status-model');
+  const stools = document.getElementById('status-tools');
+  const scache = document.getElementById('status-cache');
+
+  try {
+    const r = await fetch(`${API}/health`);
+    const h = await r.json();
+    if (h.model_loaded) {
+      dot.className = 'status-dot green';
+      htxt.textContent = 'healthy';
+    } else {
+      dot.className = 'status-dot yellow';
+      htxt.textContent = 'loading';
+      return;
+    }
+
+    const sr = await fetch(`${API}/status`);
+    if (sr.ok) {
+      const s = await sr.json();
+      smodel.textContent = s.model_name;
+      stools.textContent = s.num_tools > 0
+        ? `${s.num_tools} tools (${s.tool_names.join(', ')})`
+        : 'No tools loaded';
+      scache.textContent = s.cache_size_mb > 0
+        ? `Cache: ${s.cache_size_mb} MB / ${s.prefix_tokens} tokens`
+        : '';
+    }
+  } catch (e) {
+    dot.className = 'status-dot red';
+    htxt.textContent = 'disconnected';
+  }
+}
+
+// --- Tools actions ---
+async function registerTools() {
+  const btn = document.getElementById('btn-register');
+  const result = document.getElementById('tools-result');
+  const input = document.getElementById('tools-input').value.trim();
+
+  if (!input) {
+    showResult(result, 'Paste tool schemas first.', 'error');
+    return;
+  }
+
+  let tools;
+  try {
+    tools = JSON.parse(input);
+    if (!Array.isArray(tools)) tools = [tools];
+  } catch (e) {
+    showResult(result, `Invalid JSON: ${e.message}`, 'error');
+    return;
+  }
+
+  btn.setAttribute('aria-busy', 'true');
+  btn.textContent = 'Compiling...';
+  try {
+    const r = await fetch(`${API}/tools`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({tools}),
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showResult(result,
+        `Status: ${data.status} | ${data.num_tools} tools | ` +
+        `${data.compile_ms}ms | ${data.cache_size_mb} MB | ` +
+        `${data.prefix_tokens} prefix tokens` +
+        (data.from_disk ? ' (from disk)' : ''));
+    } else {
+      showResult(result, `Error: ${data.detail || JSON.stringify(data)}`, 'error');
+    }
+  } catch (e) {
+    showResult(result, `Network error: ${e.message}`, 'error');
+  } finally {
+    btn.removeAttribute('aria-busy');
+    btn.textContent = 'Register Tools';
+    refreshStatus();
+  }
+}
+
+async function loadSample() {
+  const textarea = document.getElementById('tools-input');
+  const result = document.getElementById('tools-result');
+  try {
+    const r = await fetch(`${API}/sample-tools`);
+    if (r.ok) {
+      const data = await r.json();
+      textarea.value = JSON.stringify(data, null, 2);
+      showResult(result, `Loaded ${data.length} sample tools. Click "Register Tools" to compile.`);
+    } else {
+      showResult(result, 'Failed to load sample tools.', 'error');
+    }
+  } catch (e) {
+    showResult(result, `Network error: ${e.message}`, 'error');
+  }
+}
+
+async function clearTools() {
+  const result = document.getElementById('tools-result');
+  try {
+    const r = await fetch(`${API}/tools`, {method: 'DELETE'});
+    const data = await r.json();
+    if (r.ok) {
+      showResult(result, `Cleared ${data.tools_removed} tools.`);
+    } else {
+      showResult(result, `Error: ${data.detail || JSON.stringify(data)}`, 'error');
+    }
+  } catch (e) {
+    showResult(result, `Network error: ${e.message}`, 'error');
+  }
+  refreshStatus();
+}
+
+function showResult(el, text, type) {
+  el.textContent = text;
+  el.className = type === 'error' ? 'alert error show' : '';
+  el.classList.add('show');
+  el.id = el.id; // keep id
+  el.style.display = 'block';
+}
+
+// --- Query ---
+async function sendQuery() {
+  const btn = document.getElementById('query-send');
+  const input = document.getElementById('query-input');
+  const area = document.getElementById('response-area');
+  const timingsEl = document.getElementById('timings');
+  const query = input.value.trim();
+
+  if (!query) return;
+
+  btn.setAttribute('aria-busy', 'true');
+  btn.textContent = 'Generating...';
+  area.textContent = 'Generating...';
+  timingsEl.innerHTML = '';
+
+  try {
+    const t0 = performance.now();
+    const r = await fetch(`${API}/query`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query, max_new_tokens: 256}),
+    });
+    const roundTrip = (performance.now() - t0).toFixed(0);
+
+    if (r.ok) {
+      const data = await r.json();
+      area.textContent = data.response;
+
+      const t = data.timings;
+      const badge = data.cache_hit
+        ? '<span class="badge hit">CACHE HIT</span>'
+        : '<span class="badge miss">CACHE MISS</span>';
+      timingsEl.innerHTML = `
+        ${badge}
+        <span>Link: ${t.link_ms || 0}ms</span>
+        <span>Prefill: ${t.prefill_query_ms || 0}ms</span>
+        <span>Decode: ${t.decode_ms || 0}ms</span>
+        <span>Total: ${t.total_ms || 0}ms</span>
+        <span>Round-trip: ${roundTrip}ms</span>
+      `;
+    } else {
+      const data = await r.json();
+      area.innerHTML = `<span class="badge error">ERROR ${r.status}</span>\n${data.detail || JSON.stringify(data)}`;
+      timingsEl.innerHTML = '';
+    }
+  } catch (e) {
+    area.textContent = `Network error: ${e.message}`;
+  } finally {
+    btn.removeAttribute('aria-busy');
+    btn.textContent = 'Send';
+  }
+}
+
+// --- Init ---
+startHealthPolling();
+</script>
+</body>
+</html>

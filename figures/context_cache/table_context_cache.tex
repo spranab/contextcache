@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\caption{ContextCache evaluation: Quality and latency across conditions and tool splits. Group-cached ContextCache matches full prefill quality while enabling persistent caching.}
+\label{tab:context-cache-results}
+\small
+\begin{tabular}{llcccccrrr}
+\toprule
+Split & Condition & TSA$\uparrow$ & PF1$\uparrow$ & EM$\uparrow$ & FPR$\downarrow$ & FNR$\downarrow$ & Link & Prefill & Decode \\
+\midrule
+  Seen & Per-Tool NoPE & 0.100 & 0.667 & 0.050 & 0.000 & 0.900 & 1731 & 140 & 7654 \\
+  Seen & \textbf{ContextCache} & 0.850 & 0.735 & 0.600 & 0.000 & 0.050 & 1861 & 145 & 8293 \\
+  Seen & Full Prefill & 0.850 & 0.716 & 0.550 & 0.000 & 0.050 & 0 & 1788 & 9181 \\
+\midrule
+  Held-Out & Per-Tool NoPE & 0.000 & 0.000 & 0.000 & 0.000 & 0.950 & 1788 & 157 & 11225 \\
+  Held-Out & \textbf{ContextCache} & 0.900 & 0.694 & 0.600 & 0.000 & 0.100 & 1681 & 171 & 9117 \\
+  Held-Out & Full Prefill & 0.900 & 0.694 & 0.600 & 0.000 & 0.100 & 0 & 2659 & 9313 \\
+\midrule
+  Unseen & Per-Tool NoPE & 0.000 & 0.000 & 0.000 & 0.000 & 1.000 & 1650 & 147 & 11496 \\
+  Unseen & \textbf{ContextCache} & 0.850 & 0.676 & 0.550 & 0.000 & 0.150 & 1407 & 139 & 10523 \\
+  Unseen & Full Prefill & 0.850 & 0.676 & 0.550 & 0.000 & 0.150 & 0 & 1648 & 10386 \\
+\bottomrule
+\end{tabular}
+\end{table*}

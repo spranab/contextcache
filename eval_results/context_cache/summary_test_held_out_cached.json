@@ -1,0 +1,18 @@
+{
+  "split": "test_held_out",
+  "condition": "cached",
+  "num_examples": 25,
+  "num_tool_calls": 20,
+  "num_non_tool": 5,
+  "tool_selection_accuracy": 0.0,
+  "parameter_f1": 0.0,
+  "exact_match": 0.0,
+  "false_positive_rate": 0.0,
+  "false_negative_rate": 0.95,
+  "correct_tool": 0,
+  "false_positives": 0,
+  "false_negatives": 19,
+  "avg_link_ms": 1788.0205559995375,
+  "avg_prefill_ms": 156.6390560005675,
+  "avg_decode_ms": 11225.410847999447
+}

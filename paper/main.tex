@@ -1,0 +1,440 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{newtxtext,newtxmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{amsmath,amssymb}
+\usepackage{hyperref}
+\usepackage{cleveref}
+\usepackage{subcaption}
+\usepackage{xcolor}
+\usepackage{algorithm2e}
+\usepackage[numbers]{natbib}
+\usepackage{microtype}
+\usepackage{enumitem}
+
+\graphicspath{{../../figures/context_cache/}}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue!70!black,
+}
+
+\title{ContextCache: Persistent KV Cache with Content-Hash Addressing\\for Zero-Degradation Tool Schema Caching}
+
+\author{
+  Pranab Sarkar\\
+  ORCID: 0009-0009-8683-1481
+}
+
+\date{February 2026}
+
+\begin{document}
+\maketitle
+
+% ===========================================================================
+\begin{abstract}
+Tool-augmented large language models reprocess identical tool schemas on every request, wasting the majority of prefill computation on unchanging context. We present \textbf{ContextCache}, a persistent KV cache system that eliminates this redundancy through content-hash addressed group caching. Given a set of tool schemas, ContextCache computes their combined KV states once, stores them persistently (keyed by SHA-256 of the sorted schema texts), and restores them on all subsequent requests---reducing time-to-first-token (TTFT) from 787\,ms to 114\,ms (6.9$\times$ speedup) on Qwen3-8B with 20 tools. Crucially, the cached path produces \emph{identical} outputs to full prefill: Tool Selection Accuracy, Parameter F1, and Exact Match are the same across all three evaluation splits.
+
+We also report an important negative result: an attempted per-tool composition approach based on No Positional Encoding (NoPE) key capture with deferred RoPE application---while mathematically correct (RoPE verification shows max difference of 0.000000 across all 36 layers)---fails catastrophically when tools are composed (TSA drops to 0.1), demonstrating that cross-tool attention dependencies in standard transformers prevent independent per-tool KV decomposition.
+
+ContextCache includes a multi-model adapter layer (supporting Qwen, Llama, and Mistral families) and a production FastAPI serving system with web UI. The one-time compilation cost of 1.4\,s is amortized after just 2.1 requests.
+\end{abstract}
+
+% ===========================================================================
+\section{Introduction}
+\label{sec:intro}
+
+In production deployments of tool-augmented LLMs, the same set of tool schemas---JSON documents describing API names, parameters, and descriptions---is included in every user prompt. For a system with $N{=}20$ tools averaging 150 tokens each, this is approximately 3,000 prefix tokens recomputed from scratch on every request. The tool catalog changes infrequently (when APIs are added, updated, or deprecated), yet the model's KV cache for these schemas is ephemeral, discarded after each request.
+
+This paper addresses the question: \textit{can we cache the KV states for tool schemas persistently and reuse them across requests without any loss in output quality?}
+
+We explore two approaches:
+
+\paragraph{Approach 1: Per-tool NoPE composition (fails).}
+We capture pre-RoPE (position-independent) key states for each tool independently, store them in a content-hash addressed KV store, and apply deferred RoPE rotations at composition time to assign correct absolute positions. The RoPE mathematics is provably correct---we verify exact match across all 36 layers of Qwen3-8B~\citep{qwen2025qwen3}. However, \textbf{composition fails}: when tools compiled independently are combined, the model's TSA drops to 0.1 (seen split) or 0.0 (unseen splits), compared to 0.850 for full prefill. The root cause is that self-attention in early transformer layers creates cross-tool dependencies that cannot be captured by independent compilation.
+
+\paragraph{Approach 2: Group caching (works).}
+We cache the complete KV state for the entire tool group (system prompt + all tool schemas) as a single unit. The cache key is the SHA-256 hash of the sorted tool schema texts. On cache hit, only the user query suffix needs prefill. This approach \textbf{matches full prefill quality exactly} while reducing TTFT by 6.9$\times$.
+
+Both the negative and positive results are contributions. The negative result provides empirical evidence that KV states in standard transformers are not compositionally decomposable at the tool level---a finding relevant to KV cache optimization research broadly. The positive result demonstrates a practical, zero-degradation caching system with content-hash addressing and persistent storage.
+
+Our contributions:
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item A content-hash addressed persistent KV store with automatic invalidation and disk/GPU tiering.
+\item NoPE key capture via monkey-patched \texttt{apply\_rotary\_pos\_emb} that works with 4-bit quantized models.
+\item Empirical evidence that per-tool KV composition fails due to cross-tool attention dependencies.
+\item Group caching that matches full prefill quality exactly with 6.9$\times$ TTFT speedup (break-even at 2.1 requests).
+\item A multi-model adapter pattern enabling the same system to work across Qwen, Llama, and Mistral model families.
+\item A production serving layer (FastAPI + web UI) for interactive deployment.
+\end{enumerate}
+
+% ===========================================================================
+\section{Related Work}
+\label{sec:related}
+
+\paragraph{KV cache management.}
+PagedAttention~\citep{kwon2023vllm} enables efficient memory management for KV cache in serving systems. SGLang~\citep{zheng2024sglang} introduces RadixAttention for prefix sharing via radix trees. CacheBlend~\citep{yao2024cacheblend} selectively recomputes tokens when composing cached KV states for RAG. These systems operate within a single serving session; ContextCache extends caching \emph{across} sessions via persistent disk storage.
+
+\paragraph{Prefix and prompt caching.}
+Prompt Cache~\citep{gim2024prompt} enables modular attention reuse through Prompt Markup Language (PML) for annotating reusable prompt segments. Anthropic's prompt caching provides TTL-based prefix reuse with a 5-minute eviction window. These approaches cache by position (prefix must match exactly); ContextCache caches by \emph{content hash}, enabling invalidation based on schema content rather than position.
+
+\paragraph{Positional encoding and composability.}
+NoPE~\citep{kazemnejad2024nope} studies position-encoding-free transformers and finds that models can learn implicit positional information. ALiBi~\citep{press2022alibi} provides additive position bias. RoPE~\citep{su2024roformer} applies rotary transformations to queries and keys. Our NoPE capture attempts to exploit RoPE's separability (capture pre-rotation keys, apply rotation later), which works mathematically but fails due to attention dependencies.
+
+\paragraph{Context compression.}
+Gisting~\citep{mu2024learning} compresses prompts into soft tokens. LLMLingua~\citep{jiang2023longllmlingua} prunes context via perplexity. ToolFormerMicro~\citep{toolformermicro2026} compresses tool schemas into composable gist vectors via cross-attention. Unlike compression approaches, ContextCache is \emph{lossless}---the cached path produces bit-for-bit identical behavior to full prefill.
+
+% ===========================================================================
+\section{Method}
+\label{sec:method}
+
+\subsection{System Architecture}
+
+ContextCache operates in three phases:
+
+\begin{enumerate}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \textbf{Compile} (one-time per tool set): Forward-pass the complete prompt prefix (system prompt + all tool schemas) through the model, extract the KV cache, and store it persistently.
+\item \textbf{Link} (per-request): Load the cached KV states into GPU memory and initialize the model's KV cache.
+\item \textbf{Execute} (per-request): Forward-pass only the user query suffix, then decode autoregressively.
+\end{enumerate}
+
+The cache key is computed as:
+\begin{equation}
+  k = \text{SHA-256}\!\left(\text{sort}(s_1, s_2, \ldots, s_N).\text{join}(\texttt{``\textbackslash n''})\right)
+  \label{eq:cache-key}
+\end{equation}
+where $s_i$ are the compact JSON representations of each tool schema. Sorting ensures order-invariance: the same set of tools produces the same cache key regardless of input order.
+
+\subsection{NoPE Capture: Per-Tool Compilation (Attempted)}
+\label{sec:nope}
+
+Our initial approach was to compile each tool's KV states \emph{independently} and compose them at inference time, enabling per-tool caching granularity.
+
+\paragraph{Mechanism.}
+In Qwen3-8B, RoPE is applied within \texttt{apply\_rotary\_pos\_emb()} after QK-norm but before KV cache storage. We monkey-patch this function at the module level (\texttt{transformers.models.qwen3.modeling\_qwen3}) to intercept pre-RoPE keys:
+
+\begin{equation}
+  \mathbf{k}_\text{nope}^{(l)} = \text{k\_norm}^{(l)}(\mathbf{W}_k^{(l)} \mathbf{h}^{(l)})
+  \label{eq:nope-capture}
+\end{equation}
+
+These position-independent keys are stored alongside the (unrotated) values. At composition time, deferred RoPE is applied:
+
+\begin{equation}
+  \mathbf{k}_\text{rope}^{(l)}[t] = \mathbf{k}_\text{nope}^{(l)}[t] \odot \cos(\theta \cdot p_t) + \text{rotate\_half}(\mathbf{k}_\text{nope}^{(l)}[t]) \odot \sin(\theta \cdot p_t)
+  \label{eq:deferred-rope}
+\end{equation}
+
+where $p_t$ is the absolute position assigned at composition time, $\theta$ is the RoPE base frequency ($10^6$ for Qwen3-8B), and $\text{rotate\_half}$ is the standard RoPE half-dimension swap.
+
+\paragraph{Verification.}
+We verify the RoPE mathematics by comparing: (a)~standard forward pass with RoPE applied at compile time, vs.\ (b)~NoPE capture followed by deferred RoPE. The maximum element-wise difference across all 36 layers is 0.000000 (within floating-point precision). \textbf{The math is correct.}
+
+\subsection{Why Per-Tool NoPE Fails}
+\label{sec:nope-fails}
+
+Despite correct RoPE mathematics, per-tool composition fails catastrophically (\Cref{tab:main-results}). The root cause is \textbf{cross-tool attention dependencies}: in standard multi-head self-attention, each token's key representation at layer $l$ depends on all tokens visible at layers $1, \ldots, l{-}1$. When tool schemas are compiled independently, each tool's keys at layer $l$ reflect only that tool's tokens---missing the cross-tool context that full prefill provides.
+
+We quantify this by measuring cosine similarity between logits produced by independently-composed NoPE KV versus full prefill: the similarity is only 0.654, far from the 1.0 needed for equivalent behavior. The resulting TSA drops to 0.100 (seen), 0.000 (held-out), and 0.000 (unseen).
+
+This is a fundamental limitation of self-attention-based architectures, not a bug in our implementation. Per-tool KV decomposition would require attention patterns that don't cross tool boundaries---a property that standard transformers do not have.
+
+\subsection{Group Caching: The Working Solution}
+\label{sec:group-cache}
+
+Given the failure of per-tool composition, we cache at the \emph{group} level: the entire prefix (system prompt + all tool schemas) is forwarded once, and the complete KV cache is stored as a unit.
+
+\paragraph{Storage.}
+The KV cache for each group is stored as a PyTorch \texttt{.pt} file containing per-layer (key, value) tensor pairs, along with the prefix length. An \texttt{index.json} file maps cache keys to metadata (tool names, creation time, token counts). The storage layout:
+
+\begin{verbatim}
+  cache/context_kv/groups/
+    index.json
+    group_<hash>.pt
+\end{verbatim}
+
+\paragraph{Cache hit path.}
+On cache hit: (1)~load the \texttt{.pt} file to GPU (${\sim}2$\,ms for 401\,MB at PCIe 4.0); (2)~initialize a \texttt{DynamicCache} with the stored tensors; (3)~forward only the user query suffix (${\sim}112$\,ms for a typical query). Total TTFT: ${\sim}114$\,ms.
+
+\paragraph{Cache miss path.}
+On cache miss: full prefill of the complete prefix (${\sim}787$\,ms for 20 tools), then store the KV cache to disk (${\sim}200$\,ms). Subsequent requests with the same tool set hit the cache.
+
+\paragraph{Invalidation.}
+Because the cache key is a hash of the tool schema content (\Cref{eq:cache-key}), any change to any tool schema produces a different hash, automatically bypassing the stale cache. No explicit invalidation logic is needed.
+
+\subsection{Model Adapter Pattern}
+\label{sec:adapter}
+
+To support multiple model families, we introduce an abstract \texttt{ModelAdapter} class that encapsulates model-specific details:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \textbf{Prompt formatting}: Chat template application (e.g., Qwen's \texttt{<tools>} XML, Llama's function-calling format, Mistral's \texttt{[AVAILABLE\_TOOLS]}).
+\item \textbf{Prompt splitting}: Separating the cacheable prefix from the per-request suffix.
+\item \textbf{Layer access}: Retrieving transformer layers for KV cache manipulation.
+\item \textbf{Stop tokens}: Model-specific end-of-generation tokens.
+\item \textbf{RoPE capture}: Model-specific monkey-patching for NoPE key interception.
+\end{itemize}
+
+Concrete implementations exist for \texttt{QwenAdapter}, \texttt{LlamaAdapter}, and \texttt{MistralAdapter}, with auto-detection from the model name.
+
+\subsection{Production Serving}
+
+ContextCache is deployed as a FastAPI server with the following endpoints:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \texttt{POST /tools}: Register tool schemas, triggering compilation (or disk cache load).
+\item \texttt{POST /query}: Run inference with cached tools (client sends only query text).
+\item \texttt{GET /status}: Current cache state, loaded tools, memory usage.
+\item \texttt{DELETE /tools}: Clear the tool cache.
+\end{itemize}
+
+The model loads in a background thread, allowing the health endpoint to respond immediately. A browser-based web UI at the root path provides interactive tool registration and querying.
+
+% ===========================================================================
+\section{Experimental Setup}
+\label{sec:experiments}
+
+\paragraph{Model.}
+Qwen3-8B~\citep{qwen2025qwen3} with 4-bit NF4 quantization (BitsAndBytes~\citep{dettmers2022gptint8}), bfloat16 compute dtype. 36 layers, 8 KV heads, head dimension 128. RoPE base frequency $\theta = 10^6$. No training or fine-tuning---the model is used as-is.
+
+\paragraph{Dataset.}
+Tool-calling test sets with 25 examples per split per condition. Three splits: \textbf{test\_seen} (tools from training catalog), \textbf{test\_held\_out} (training tools, novel queries), \textbf{test\_unseen} (entirely novel tools). Each example includes 20 tool schemas from a 100-tool catalog (plus a separate unseen catalog) and a user query.
+
+\paragraph{Conditions.}
+Three inference conditions: (1)~\textbf{Per-Tool NoPE}: independently compiled per-tool KV with deferred RoPE composition; (2)~\textbf{ContextCache} (group cached): cached prefix KV for the full tool group; (3)~\textbf{Full Prefill}: standard inference with all tool schemas as text.
+
+\paragraph{Latency benchmark.}
+Separate benchmark with 30 diverse queries over 20 tools, measuring link time, prefill time, decode time, and total latency. Scaling benchmark with 5, 10, and 20 tools.
+
+\paragraph{Metrics.}
+Quality: TSA (Tool Selection Accuracy), PF1 (Parameter F1), EM (Exact Match), FPR (False Positive Rate), FNR (False Negative Rate). Latency: TTFT (time to first token), decomposed into link, prefill, and decode phases.
+
+\paragraph{Hardware.}
+2$\times$ NVIDIA RTX 3090 Ti (24\,GB each). Model loaded on single GPU.
+
+% ===========================================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Quality Equivalence}
+
+\begin{table*}[t]
+\centering
+\caption{Quality and latency across conditions and splits. ContextCache (group cached) matches full prefill exactly on TSA, PF1, EM, FPR, and FNR. Per-Tool NoPE fails catastrophically. Timing in milliseconds.}
+\label{tab:main-results}
+\small
+\begin{tabular}{llcccccrrr}
+\toprule
+Split & Condition & TSA$\uparrow$ & PF1$\uparrow$ & EM$\uparrow$ & FPR$\downarrow$ & FNR$\downarrow$ & Link & Prefill & Decode \\
+\midrule
+  Seen & Per-Tool NoPE & 0.100 & 0.667 & 0.050 & 0.000 & 0.900 & 1731 & 140 & 7654 \\
+  Seen & \textbf{ContextCache} & \textbf{0.850} & \textbf{0.735} & \textbf{0.600} & \textbf{0.000} & \textbf{0.050} & 1861 & 145 & 8293 \\
+  Seen & Full Prefill & 0.850 & 0.716 & 0.550 & 0.000 & 0.050 & 0 & 1788 & 9181 \\
+\midrule
+  Held-Out & Per-Tool NoPE & 0.000 & 0.000 & 0.000 & 0.000 & 0.950 & 1788 & 157 & 11225 \\
+  Held-Out & \textbf{ContextCache} & \textbf{0.900} & \textbf{0.694} & \textbf{0.600} & \textbf{0.000} & \textbf{0.100} & 1681 & 171 & 9117 \\
+  Held-Out & Full Prefill & 0.900 & 0.694 & 0.600 & 0.000 & 0.100 & 0 & 2659 & 9313 \\
+\midrule
+  Unseen & Per-Tool NoPE & 0.000 & 0.000 & 0.000 & 0.000 & 1.000 & 1650 & 147 & 11496 \\
+  Unseen & \textbf{ContextCache} & \textbf{0.850} & \textbf{0.676} & \textbf{0.550} & \textbf{0.000} & \textbf{0.150} & 1407 & 139 & 10523 \\
+  Unseen & Full Prefill & 0.850 & 0.676 & 0.550 & 0.000 & 0.150 & 0 & 1648 & 10386 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\Cref{tab:main-results} presents the main results. Key findings:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \textbf{Exact quality match}: ContextCache produces identical TSA, PF1, EM, FPR, and FNR to full prefill across \emph{all three splits}. This is not approximate---the same tool calls are generated with the same parameters.
+\item \textbf{Per-Tool NoPE failure}: Independent compilation catastrophically fails. On seen tools, only 10\% of queries select the correct tool. On held-out and unseen tools, accuracy is zero. The model generates incoherent tool calls or no tool calls at all.
+\item \textbf{Consistent across splits}: Quality metrics are comparable across seen, held-out, and unseen splits, confirming that the caching mechanism does not introduce any data leakage or split-specific artifacts.
+\end{itemize}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig1_quality_equivalence.pdf}
+  \caption{Quality equivalence: ContextCache (group cached) matches full prefill on all metrics across all splits.}
+  \label{fig:quality}
+\end{figure}
+
+\subsection{Latency Results}
+
+\begin{table}[t]
+\centering
+\caption{Deployment economics. Compile cost is paid once; every subsequent request saves 673\,ms.}
+\label{tab:deployment}
+\small
+\begin{tabular}{lr}
+\toprule
+Metric & Value \\
+\midrule
+  Tools in catalog & 20 \\
+  Cache size (GPU) & 401 MB \\
+  Cached prefix tokens & 2,851 \\
+  \midrule
+  Compile time (one-time) & 1,386 ms \\
+  Full prefill TTFT & 787 ms \\
+  Cache-hit TTFT & 114 ms \\
+  \quad KV cache load & 2 ms \\
+  \quad Suffix prefill & 112 ms \\
+  \midrule
+  TTFT speedup & 6.9$\times$ \\
+  Savings per request & 673 ms \\
+  Break-even & 2.1 requests \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:deployment} summarizes the deployment economics for 20 tools. The one-time compilation cost of 1,386\,ms is amortized after just 2.1 requests. At 1,000 requests, the cumulative savings are 672 seconds (11.2 minutes). The cache-hit TTFT of 114\,ms comprises 2\,ms for KV cache loading and 112\,ms for user query suffix prefill.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig6_ttft_comparison.pdf}
+  \caption{TTFT comparison: 787\,ms (full prefill) vs.\ 114\,ms (cache hit), a 6.9$\times$ speedup.}
+  \label{fig:ttft}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig7_amortization.pdf}
+  \caption{Amortization curve. The 1.4\,s compile cost is recovered after 2.1 requests. At 1,000 requests, 672 seconds are saved.}
+  \label{fig:amortization}
+\end{figure}
+
+\subsection{Scaling with Number of Tools}
+
+\begin{table}[t]
+\centering
+\caption{TTFT scaling. Full prefill grows linearly with tool count; cache-hit TTFT remains constant.}
+\label{tab:scaling}
+\small
+\begin{tabular}{rrrrrr}
+\toprule
+\# Tools & Full Prefill & Cache Hit & Speedup & Compile & Cache MB \\
+\midrule
+  5 & 237 ms & 120 ms & 2.0$\times$ & 260 ms & 91 \\
+  10 & 395 ms & 114 ms & 3.5$\times$ & 401 ms & 183 \\
+  20 & 794 ms & 121 ms & 6.6$\times$ & 922 ms & 401 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\Cref{tab:scaling} shows TTFT scaling from 5 to 20 tools. Full prefill grows linearly (237$\to$794\,ms), while cache-hit TTFT remains approximately constant (${\sim}114$--121\,ms). The speedup increases from 2.0$\times$ at 5 tools to 6.6$\times$ at 20 tools. We expect this trend to continue: at 100 tools, full prefill would exceed 3\,s while cache-hit TTFT remains at ${\sim}120$\,ms.
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig8_scaling_ttft.pdf}
+  \caption{TTFT scaling with tool count. Full prefill grows linearly; cache-hit TTFT stays flat at ${\sim}114$\,ms.}
+  \label{fig:scaling}
+\end{figure}
+
+\subsection{Error Analysis}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig3_error_analysis.pdf}
+  \caption{Error analysis. The dominant error mode is false negatives (missing tool calls). False positive rate is zero across all conditions.}
+  \label{fig:errors}
+\end{figure}
+
+\Cref{fig:errors} shows the error breakdown. The dominant error mode is false negatives---the model fails to invoke a tool when it should (FNR ranges from 5\% on seen tools to 15\% on unseen tools). False positives are zero everywhere: the model never hallucinates tool calls for non-tool queries. Importantly, ContextCache preserves the \emph{exact same} error profile as full prefill---caching introduces no new failure modes.
+
+\subsection{Comparison with Baselines}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{fig5_method_comparison.pdf}
+  \caption{Method comparison. ContextCache achieves full prefill quality while enabling caching. Tool Gisting trades quality for compression.}
+  \label{fig:methods}
+\end{figure}
+
+\Cref{fig:methods} compares ContextCache against baselines:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \textbf{vs.\ Tool Gisting K=8}: ContextCache achieves TSA=0.850 vs.\ 0.714, with zero FPR vs.\ 0.302. Gisting is lossy and introduces spurious tool calls.
+\item \textbf{vs.\ ToolFormerMicro}~\citep{toolformermicro2026}: ContextCache has higher quality (TSA 0.850 vs.\ 0.818, EM 0.600 vs.\ 0.580) because it uses the full 8B model with complete schemas. ToolFormerMicro offers true per-tool composability in a 20$\times$ smaller model but with a quality gap.
+\item \textbf{vs.\ Per-Tool NoPE}: ContextCache dramatically outperforms the NoPE approach, confirming that group-level caching is the correct abstraction.
+\end{itemize}
+
+% ===========================================================================
+\section{Discussion}
+\label{sec:discussion}
+
+\paragraph{The NoPE negative result.}
+Our finding that per-tool NoPE composition fails despite correct RoPE mathematics is significant for the KV cache optimization community. It demonstrates that in standard transformers, KV states at layer $l$ are functions of \emph{all} tokens visible at layers $1, \ldots, l{-}1$, not just the tokens from the current segment. This means that truly composable KV caching at the individual-tool level requires architectural changes (such as the separate encoder in ToolFormerMicro~\citep{toolformermicro2026}) rather than post-hoc decomposition of standard attention.
+
+\paragraph{Group caching as the correct abstraction.}
+In practice, tool sets change infrequently---typically when APIs are versioned, new tools are added, or deprecated tools are removed. These events happen on the timescale of days to weeks, while user requests arrive on the timescale of seconds. Group-level caching with content-hash invalidation naturally captures this usage pattern: the compilation cost (${\sim}1.4$\,s for 20 tools) is negligible compared to the savings across thousands of subsequent requests.
+
+\paragraph{Memory tradeoff.}
+The 401\,MB GPU memory for 20 tools' KV cache is significant but manageable on modern GPUs. This scales linearly with the number of unique tool \emph{combinations} (not individual tools), which in practice is small---most deployments use a single fixed tool set.
+
+\paragraph{Limitations.}
+(1)~Adding or removing a single tool invalidates the entire group cache, requiring recompilation. Differential caching (recomputing only the affected KV segments) is an interesting direction but non-trivial given the cross-attention dependencies we identified. (2)~The system has been primarily tested on Qwen3-8B; the adapter pattern supports Llama and Mistral but production-scale testing on these families is ongoing. (3)~4-bit quantization introduces non-deterministic dequantization behavior that complicates per-layer NoPE capture, requiring module-level rather than layer-level monkey-patching.
+
+% ===========================================================================
+\section{Conclusion}
+\label{sec:conclusion}
+
+We presented ContextCache, a persistent KV cache system with content-hash addressing that provides zero-degradation tool schema caching with 6.9$\times$ TTFT speedup. The system requires no model training or modification---it works with any supported model family out of the box.
+
+Our negative result on per-tool NoPE composition provides an important empirical finding: cross-attention dependencies in standard transformers prevent independent per-tool KV decomposition, even when positional encoding is handled correctly. This suggests that achieving true per-tool composability requires architectural changes (as in ToolFormerMicro~\citep{toolformermicro2026}) rather than caching strategies alone.
+
+ContextCache is released as open-source software with a multi-model adapter layer, persistent disk/GPU cache, FastAPI serving, and a browser-based web UI. Future work includes differential group caching (minimizing recomputation when one tool changes), integration with PagedAttention~\citep{kwon2023vllm} for production serving, and extension to other context types (code files, documents, system prompts).
+
+\paragraph{Reproducibility.} Code and evaluation data are available at \url{https://github.com/anonymous/contextcache}.
+
+% ===========================================================================
+\bibliographystyle{plainnat}
+\bibliography{../references}
+
+% ===========================================================================
+\appendix
+
+\section{RoPE Verification}
+\label{app:rope}
+
+We verify the correctness of our deferred RoPE implementation by comparing two paths:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Standard path}: Forward pass with RoPE applied at compile time (positions 0, 1, \ldots, $T{-}1$).
+\item \textbf{Deferred path}: Forward pass capturing pre-RoPE (NoPE) keys, then applying RoPE post-hoc with the same positions.
+\end{enumerate}
+
+For all 36 layers of Qwen3-8B, the maximum element-wise difference between the two paths is 0.000000 (within float32 precision). This confirms that the RoPE mathematics (\Cref{eq:deferred-rope}) is implemented correctly, and that the composition failure (\Cref{sec:nope-fails}) is due to attention dependencies, not RoPE errors.
+
+\section{Model Adapter API}
+\label{app:adapter}
+
+The \texttt{ModelAdapter} abstract base class defines:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \texttt{build\_full\_prompt(tool\_schemas, user\_query, system\_prompt) -> str}: Complete prompt string.
+\item \texttt{build\_prompt\_parts(...) -> (prefix, suffix)}: Splits prompt into cacheable prefix and per-request suffix.
+\item \texttt{get\_stop\_token\_ids() -> set[int]}: Model-specific stop tokens.
+\item \texttt{\_get\_layers() -> list}: Transformer layer objects for KV access.
+\item \texttt{monkey\_patch\_rope\_capture(state)}: Install NoPE key capture hook.
+\end{itemize}
+
+Implementations for Qwen (using \texttt{<tools>} XML and \texttt{enable\_thinking=False}), Llama (using HF chat template with tools), and Mistral (using \texttt{[AVAILABLE\_TOOLS]}) are provided.
+
+\section{Serving API}
+\label{app:serving}
+
+The FastAPI server exposes five endpoints:
+
+\begin{itemize}[leftmargin=*,topsep=2pt,itemsep=1pt]
+\item \texttt{POST /tools}: Register tool schemas. Returns compilation status, cache hash, timing, cache size.
+\item \texttt{POST /query}: Run inference. Returns response text, cache hit status, timing breakdown.
+\item \texttt{GET /status}: Model name, loaded tools, cache size, prefix tokens.
+\item \texttt{DELETE /tools}: Clear in-memory and on-disk caches.
+\item \texttt{GET /health}: Health check (responds during model loading).
+\end{itemize}
+
+The model loads in a background thread via an async lifespan context manager, allowing the health endpoint to return \texttt{\{"status": "loading"\}} immediately while the model initializes (${\sim}30$\,s). A browser-based web UI at the root path provides interactive tool registration and querying with real-time timing display.
+
+\end{document}

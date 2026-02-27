@@ -1,0 +1,42 @@
+\begin{table}[t]
+\centering
+\caption{ContextCache deployment economics. Compile cost is paid once when tools change; every subsequent request benefits from cached KV states. TTFT = time to first token.}
+\label{tab:deployment}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Metric & Value \\
+\midrule
+  Tools in catalog & 20 \\
+  Cache size (GPU) & 401 MB \\
+  Cached prefix tokens & 2851 \\
+  \midrule
+  Compile time (one-time) & 1386 ms \\
+  Full prefill TTFT & 787 ms \\
+  Cache-hit TTFT & 114 ms \\
+  \quad KV cache load & 2 ms \\
+  \quad Suffix prefill & 112 ms \\
+  \midrule
+  TTFT speedup & 6.9$\times$ \\
+  Savings per request & 673 ms \\
+  Break-even & 2.1 requests \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+% Scaling table
+\begin{table}[t]
+\centering
+\caption{TTFT scaling with number of tools. Full prefill grows linearly; ContextCache cache-hit TTFT remains constant (suffix-only prefill).}
+\label{tab:scaling}
+\small
+\begin{tabular}{rrrrrr}
+\toprule
+\# Tools & Full Prefill & Cache Hit & Speedup & Compile & Cache MB \\
+\midrule
+  5 & 237 ms & 120 ms & 2.0$\times$ & 260 ms & 91 \\
+  10 & 395 ms & 114 ms & 3.5$\times$ & 401 ms & 183 \\
+  20 & 794 ms & 121 ms & 6.6$\times$ & 922 ms & 401 \\
+\bottomrule
+\end{tabular}
+\end{table}
