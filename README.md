@@ -74,10 +74,16 @@ pip install -r requirements.txt
 ### One-Command Server Launch
 
 ```bash
+# Live mode (requires GPU with ~8GB VRAM)
 python scripts/serve/launch.py
+
+# Demo mode (no GPU needed — pre-recorded responses)
+python scripts/serve/launch.py --demo
 ```
 
-This starts the FastAPI server, loads the model in the background, and opens a browser UI. The UI shows a loading overlay until the model is ready.
+**Live mode** starts the FastAPI server, loads Qwen3-8B (4-bit NF4) in the background, and opens a browser UI.
+
+**Demo mode** runs without any GPU or model dependencies, using pre-recorded responses with realistic timing simulation. Ideal for presentations and evaluating the UI.
 
 ### Programmatic Usage
 
@@ -132,11 +138,13 @@ scripts/
   cache/benchmark_latency.py      # Latency benchmarks
   cache/compile_contexts.py       # Pre-compile KV caches
   cache/smoke_test.py             # Quick validation
-  serve/serve_context_cache.py    # FastAPI server
-  serve/launch.py                 # One-command launcher
+  serve/serve_context_cache.py    # FastAPI server (live + demo modes)
+  serve/launch.py                 # One-command launcher (--demo flag)
+  serve/demo_profiles.json        # Team profiles (Customer Service, Inventory, Analytics)
+  serve/demo_recording.json       # Pre-recorded responses + timing profiles
   serve/test_client.py            # API test client
   serve/sample_tools.json         # Demo tools
-  serve/static/index.html         # Browser UI
+  serve/static/index.html         # Browser UI with dashboard
   data/                           # Data pipeline
   analysis/cache_plots.py         # Plot generation
 eval_results/                     # Paper-ready results
@@ -154,6 +162,10 @@ paper/                            # LaTeX source & compiled PDF
 | `/status` | GET | Cache stats (tool count, size, model info) |
 | `/health` | GET | Health check (model loaded status) |
 | `/sample-tools` | GET | Demo tool schemas |
+| `/profiles` | GET | List available team profiles (demo mode) |
+| `/profiles/{id}/tools` | GET | Get tools for a specific profile |
+| `/query/compare` | POST | A/B comparison (cached vs full prefill) |
+| `/mode` | GET | Current server mode (live or demo) |
 
 ## Paper
 
