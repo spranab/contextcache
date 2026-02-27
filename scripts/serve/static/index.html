@@ -3,111 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ContextCache Server</title>
+  <title>ContextCache</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <style>
     :root {
-      --cc-green: #4ade80;
-      --cc-red: #f87171;
-      --cc-yellow: #facc15;
-      --cc-blue: #60a5fa;
-      --cc-dim: #6b7280;
+      --cc-green: #4ade80; --cc-red: #f87171; --cc-yellow: #facc15;
+      --cc-blue: #60a5fa; --cc-dim: #6b7280; --cc-purple: #a78bfa;
     }
     body { margin: 0; padding: 0; }
+
     /* Loading overlay */
     #loading-overlay {
       position: fixed; inset: 0; z-index: 9999;
-      background: rgba(17, 24, 39, 0.95);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
+      background: rgba(17,24,39,0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       transition: opacity 0.5s;
     }
     #loading-overlay.hidden { opacity: 0; pointer-events: none; }
-    .spinner {
-      width: 48px; height: 48px;
-      border: 4px solid var(--cc-dim);
-      border-top-color: var(--cc-blue);
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--cc-dim); border-top-color: var(--cc-blue); border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     #loading-overlay p { margin-top: 1rem; color: var(--cc-dim); }
 
     /* Header */
     header.app-header {
-      padding: 0.75rem 1.5rem;
-      border-bottom: 1px solid var(--pico-muted-border-color);
+      padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--pico-muted-border-color);
       display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap;
     }
     header h1 { margin: 0; font-size: 1.25rem; flex-shrink: 0; }
-    .status-bar {
-      display: flex; gap: 1.25rem; align-items: center;
-      font-size: 0.85rem; color: var(--cc-dim); flex-wrap: wrap;
+    .mode-badge {
+      display: inline-block; padding: 2px 10px; border-radius: 4px;
+      font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
     }
-    .status-dot {
-      display: inline-block; width: 8px; height: 8px;
-      border-radius: 50%; margin-right: 4px; vertical-align: middle;
-    }
+    .mode-badge.demo { background: var(--cc-purple); color: #fff; }
+    .mode-badge.live { background: var(--cc-green); color: #000; }
+    .status-bar { display: flex; gap: 1.25rem; align-items: center; font-size: 0.85rem; color: var(--cc-dim); flex-wrap: wrap; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
     .status-dot.green { background: var(--cc-green); }
     .status-dot.red { background: var(--cc-red); }
     .status-dot.yellow { background: var(--cc-yellow); }
 
-    /* Main layout */
-    .panels {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 1.5rem; padding: 1.5rem; min-height: calc(100vh - 60px);
-    }
+    /* Layout */
+    .panels { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem; }
     @media (max-width: 900px) { .panels { grid-template-columns: 1fr; } }
     .panel {
       background: var(--pico-card-background-color);
       border: 1px solid var(--pico-muted-border-color);
-      border-radius: 8px; padding: 1.25rem;
-      display: flex; flex-direction: column;
+      border-radius: 8px; padding: 1.25rem; display: flex; flex-direction: column;
     }
-    .panel h2 { margin: 0 0 1rem; font-size: 1.1rem; }
+    .panel h2 { margin: 0 0 0.75rem; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem; }
+    .full-width { grid-column: 1 / -1; }
 
     /* Tools panel */
-    #tools-input {
-      flex: 1; min-height: 250px; font-family: monospace;
-      font-size: 0.8rem; resize: vertical;
-    }
+    #tools-input { flex: 1; min-height: 180px; font-family: monospace; font-size: 0.8rem; resize: vertical; }
     .btn-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; flex-wrap: wrap; }
-    .btn-row button { flex: 1; min-width: 100px; }
-    #tools-result {
-      margin-top: 0.75rem; padding: 0.75rem;
-      border-radius: 6px; font-size: 0.85rem;
-      background: var(--pico-card-sectioning-background-color);
-      display: none;
-    }
+    .btn-row button { flex: 1; min-width: 80px; }
+    #tools-result { margin-top: 0.5rem; padding: 0.5rem; border-radius: 6px; font-size: 0.85rem; background: var(--pico-card-sectioning-background-color); display: none; }
     #tools-result.show { display: block; }
 
+    /* Profile selector */
+    .profile-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; align-items: center; }
+    .profile-row select { flex: 1; margin: 0; }
+    .profile-row label { font-size: 0.85rem; white-space: nowrap; }
+
+    /* Sample queries */
+    .sample-queries { margin-top: 0.75rem; }
+    .sample-queries h3 { font-size: 0.9rem; margin: 0 0 0.5rem; color: var(--cc-dim); }
+    .sample-q {
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.3rem 0;
+      font-size: 0.85rem; cursor: pointer; border-bottom: 1px solid var(--pico-muted-border-color);
+    }
+    .sample-q:hover { color: var(--cc-blue); }
+    .sample-q .try-btn {
+      font-size: 0.7rem; padding: 1px 8px; border-radius: 3px;
+      background: var(--cc-blue); color: #000; font-weight: 600; white-space: nowrap;
+    }
+
     /* Query panel */
-    #query-input { font-size: 0.95rem; }
-    #query-send { margin-top: 0.5rem; }
+    .query-row { display: flex; gap: 0.5rem; }
+    .query-row input { flex: 1; margin: 0; }
+    .query-row button { margin: 0; white-space: nowrap; }
+    .mode-toggle { display: flex; gap: 0.5rem; margin: 0.5rem 0; }
+    .mode-toggle button { padding: 4px 12px; font-size: 0.8rem; border-radius: 4px; }
+    .mode-toggle button.active { background: var(--cc-blue); color: #000; font-weight: 600; }
+
+    /* Response */
     #response-area {
-      flex: 1; margin-top: 1rem; padding: 1rem;
-      border-radius: 6px; font-size: 0.9rem; white-space: pre-wrap;
+      flex: 1; margin-top: 0.75rem; padding: 1rem; border-radius: 6px;
+      font-size: 0.9rem; white-space: pre-wrap; min-height: 120px; overflow-y: auto;
       background: var(--pico-card-sectioning-background-color);
-      min-height: 200px; overflow-y: auto;
     }
-    .timings {
-      margin-top: 0.75rem; font-size: 0.8rem; color: var(--cc-dim);
-      display: flex; gap: 1rem; flex-wrap: wrap;
-    }
-    .timings span { white-space: nowrap; }
-    .badge {
-      display: inline-block; padding: 2px 8px;
-      border-radius: 4px; font-size: 0.75rem; font-weight: 600;
-    }
+    .timings { margin-top: 0.5rem; font-size: 0.8rem; color: var(--cc-dim); display: flex; gap: 1rem; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
     .badge.hit { background: var(--cc-green); color: #000; }
     .badge.miss { background: var(--cc-yellow); color: #000; }
     .badge.error { background: var(--cc-red); color: #fff; }
 
-    /* Alert */
-    .alert {
-      padding: 0.5rem 0.75rem; border-radius: 6px;
-      margin-top: 0.5rem; font-size: 0.85rem;
+    /* A/B Comparison bars */
+    .ab-compare { margin-top: 0.75rem; }
+    .ab-bar-row { display: flex; align-items: center; gap: 0.75rem; margin: 0.4rem 0; font-size: 0.85rem; }
+    .ab-label { width: 100px; text-align: right; color: var(--cc-dim); }
+    .ab-bar-container { flex: 1; height: 28px; background: rgba(255,255,255,0.05); border-radius: 4px; position: relative; }
+    .ab-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 0.8rem; font-weight: 600; transition: width 0.8s ease-out; }
+    .ab-bar.full { background: var(--cc-red); color: #fff; }
+    .ab-bar.cached { background: var(--cc-green); color: #000; }
+    .speedup-badge { font-size: 1.1rem; font-weight: 700; color: var(--cc-green); margin-left: 0.5rem; }
+
+    /* Dashboard */
+    .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 1rem; }
+    .stat-card {
+      background: var(--pico-card-sectioning-background-color);
+      border-radius: 8px; padding: 1rem; text-align: center;
     }
+    .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--cc-green); }
+    .stat-card .label { font-size: 0.8rem; color: var(--cc-dim); margin-top: 0.25rem; }
+
+    /* Cost calculator */
+    .cost-calc { margin-top: 1rem; }
+    .cost-calc summary { font-size: 0.9rem; cursor: pointer; color: var(--cc-blue); }
+    .calc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 0.75rem; }
+    .calc-input label { font-size: 0.8rem; color: var(--cc-dim); }
+    .calc-input input { margin: 0; }
+    .calc-result { font-size: 1.1rem; font-weight: 700; color: var(--cc-green); text-align: center; padding: 0.5rem; }
+
+    /* Chart */
+    .chart-container { position: relative; height: 220px; margin-top: 1rem; }
+
+    .alert { padding: 0.5rem 0.75rem; border-radius: 6px; margin-top: 0.5rem; font-size: 0.85rem; }
     .alert.error { background: rgba(248,113,113,0.15); color: var(--cc-red); }
   </style>
 </head>
@@ -122,6 +144,7 @@
 <!-- Header -->
 <header class="app-header">
   <h1>ContextCache</h1>
+  <span class="mode-badge" id="mode-badge">...</span>
   <div class="status-bar">
     <span><span class="status-dot" id="health-dot"></span> <span id="health-text">connecting...</span></span>
     <span id="status-model"></span>
@@ -135,47 +158,161 @@
   <!-- Tools Panel -->
   <div class="panel">
     <h2>Tools</h2>
-    <textarea id="tools-input" placeholder='Paste tool schemas in OpenAI format, e.g.:\n[\n  {"type": "function", "function": {"name": "...", ...}}\n]'></textarea>
+    <div class="profile-row" id="profile-row" style="display:none">
+      <label>Profile:</label>
+      <select id="profile-select" onchange="loadProfile(this.value)">
+        <option value="">-- Select team --</option>
+      </select>
+    </div>
+    <textarea id="tools-input" placeholder='Paste tool schemas in OpenAI format, e.g.:
+[{"type": "function", "function": {"name": "...", ...}}]'></textarea>
     <div class="btn-row">
       <button id="btn-register" onclick="registerTools()">Register Tools</button>
-      <button id="btn-sample" class="secondary" onclick="loadSample()">Load Sample</button>
-      <button id="btn-clear" class="secondary" onclick="clearTools()">Clear Tools</button>
+      <button class="secondary" onclick="loadSample()">Load Sample</button>
+      <button class="secondary" onclick="clearTools()">Clear</button>
     </div>
     <div id="tools-result"></div>
+    <div class="sample-queries" id="sample-queries" style="display:none">
+      <h3>Sample Queries</h3>
+      <div id="sample-queries-list"></div>
+    </div>
   </div>
 
   <!-- Query Panel -->
   <div class="panel">
     <h2>Query</h2>
-    <input type="text" id="query-input" placeholder="Ask a question, e.g. 'What is the weather in NYC?'" onkeydown="if(event.key==='Enter')sendQuery()">
-    <button id="query-send" onclick="sendQuery()">Send</button>
+    <div class="query-row">
+      <input type="text" id="query-input" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')sendQuery()">
+      <button onclick="sendQuery()">Send</button>
+    </div>
+    <div class="mode-toggle">
+      <button class="active" id="btn-single" onclick="setQueryMode('single')">Single</button>
+      <button id="btn-compare" onclick="setQueryMode('compare')">Compare A/B</button>
+    </div>
     <div id="response-area">Response will appear here...</div>
     <div class="timings" id="timings"></div>
+    <!-- A/B Comparison -->
+    <div class="ab-compare" id="ab-compare" style="display:none">
+      <div class="ab-bar-row">
+        <span class="ab-label">Full Prefill</span>
+        <div class="ab-bar-container"><div class="ab-bar full" id="ab-bar-full"></div></div>
+      </div>
+      <div class="ab-bar-row">
+        <span class="ab-label">Cached</span>
+        <div class="ab-bar-container"><div class="ab-bar cached" id="ab-bar-cached"></div></div>
+        <span class="speedup-badge" id="speedup-badge"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="panel full-width">
+    <h2>Dashboard</h2>
+    <div class="dashboard-grid">
+      <div class="stat-card"><div class="value" id="stat-queries">0</div><div class="label">Total Queries</div></div>
+      <div class="stat-card"><div class="value" id="stat-hits">0</div><div class="label">Cache Hits</div></div>
+      <div class="stat-card"><div class="value" id="stat-rate">0%</div><div class="label">Hit Rate</div></div>
+      <div class="stat-card"><div class="value" id="stat-saved">0s</div><div class="label">Time Saved</div></div>
+    </div>
+
+    <!-- Latency Chart -->
+    <div class="chart-container">
+      <canvas id="latency-chart"></canvas>
+    </div>
+
+    <!-- Cost Calculator -->
+    <details class="cost-calc">
+      <summary>Cost Savings Calculator</summary>
+      <div class="calc-grid">
+        <div class="calc-input">
+          <label>Daily requests</label>
+          <input type="number" id="calc-requests" value="10000" min="1" oninput="updateCalc()">
+        </div>
+        <div class="calc-input">
+          <label>GPU cost ($/hour)</label>
+          <input type="number" id="calc-gpu-cost" value="2.50" min="0.01" step="0.01" oninput="updateCalc()">
+        </div>
+      </div>
+      <div class="calc-result" id="calc-result"></div>
+    </details>
   </div>
 </div>
 
 <script>
 const API = window.location.origin;
+let queryMode = 'single';
+let serverMode = 'live';
+
+// --- Stats tracking ---
+let stats = JSON.parse(sessionStorage.getItem('cc_stats') || '{"queries":0,"hits":0,"misses":0,"saved_ms":0}');
+
+function saveStats() { sessionStorage.setItem('cc_stats', JSON.stringify(stats)); }
+
+function updateStatsUI() {
+  document.getElementById('stat-queries').textContent = stats.queries;
+  document.getElementById('stat-hits').textContent = stats.hits;
+  const rate = stats.queries > 0 ? ((stats.hits / stats.queries) * 100).toFixed(1) : '0';
+  document.getElementById('stat-rate').textContent = rate + '%';
+  const saved = stats.saved_ms > 1000 ? (stats.saved_ms / 1000).toFixed(1) + 's' : Math.round(stats.saved_ms) + 'ms';
+  document.getElementById('stat-saved').textContent = saved;
+}
+updateStatsUI();
+
+// --- Latency chart ---
+const ctx = document.getElementById('latency-chart').getContext('2d');
+const latencyChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: [],
+    datasets: [
+      {
+        label: 'Full Prefill Baseline',
+        data: [], borderColor: '#f87171', borderDash: [6, 3],
+        pointRadius: 0, borderWidth: 2, fill: false,
+      },
+      {
+        label: 'Actual TTFT',
+        data: [], borderColor: '#4ade80',
+        pointRadius: 4, pointBackgroundColor: '#4ade80',
+        borderWidth: 2, fill: false,
+      },
+    ],
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    scales: {
+      x: { title: { display: true, text: 'Request #' } },
+      y: { title: { display: true, text: 'TTFT (ms)' }, beginAtZero: true },
+    },
+    plugins: { legend: { position: 'top' } },
+    animation: { duration: 400 },
+  },
+});
+
+function addLatencyPoint(ttft, baseline) {
+  const n = latencyChart.data.labels.length + 1;
+  latencyChart.data.labels.push(n);
+  latencyChart.data.datasets[0].data.push(baseline);
+  latencyChart.data.datasets[1].data.push(ttft);
+  latencyChart.update();
+}
 
 // --- Loading overlay ---
-let loadingInterval = null;
-
 function startHealthPolling() {
   const overlay = document.getElementById('loading-overlay');
   const text = document.getElementById('loading-text');
   let dots = 0;
-
-  loadingInterval = setInterval(async () => {
+  const iv = setInterval(async () => {
     dots = (dots + 1) % 4;
     try {
       const r = await fetch(`${API}/health`);
       const data = await r.json();
+      serverMode = data.mode || 'live';
       if (data.model_loaded) {
-        clearInterval(loadingInterval);
+        clearInterval(iv);
         overlay.classList.add('hidden');
         setTimeout(() => overlay.style.display = 'none', 600);
-        refreshStatus();
-        startStatusPolling();
+        initUI();
         return;
       }
       text.textContent = 'Loading model' + '.'.repeat(dots);
@@ -185,94 +322,128 @@ function startHealthPolling() {
   }, 2000);
 }
 
-// --- Status polling ---
-let statusInterval = null;
-
-function startStatusPolling() {
-  statusInterval = setInterval(refreshStatus, 10000);
+async function initUI() {
+  // Set mode badge
+  const badge = document.getElementById('mode-badge');
+  badge.textContent = serverMode;
+  badge.className = 'mode-badge ' + serverMode;
+  if (serverMode === 'demo') {
+    document.getElementById('loading-text').textContent = 'Demo mode';
+  }
+  refreshStatus();
+  setInterval(refreshStatus, 10000);
+  loadProfiles();
+  updateCalc();
 }
 
+// --- Status ---
 async function refreshStatus() {
   const dot = document.getElementById('health-dot');
   const htxt = document.getElementById('health-text');
-  const smodel = document.getElementById('status-model');
-  const stools = document.getElementById('status-tools');
-  const scache = document.getElementById('status-cache');
-
   try {
     const r = await fetch(`${API}/health`);
     const h = await r.json();
     if (h.model_loaded) {
-      dot.className = 'status-dot green';
-      htxt.textContent = 'healthy';
+      dot.className = 'status-dot green'; htxt.textContent = 'healthy';
     } else {
-      dot.className = 'status-dot yellow';
-      htxt.textContent = 'loading';
-      return;
+      dot.className = 'status-dot yellow'; htxt.textContent = 'loading'; return;
     }
-
     const sr = await fetch(`${API}/status`);
     if (sr.ok) {
       const s = await sr.json();
-      smodel.textContent = s.model_name;
-      stools.textContent = s.num_tools > 0
-        ? `${s.num_tools} tools (${s.tool_names.join(', ')})`
-        : 'No tools loaded';
-      scache.textContent = s.cache_size_mb > 0
-        ? `Cache: ${s.cache_size_mb} MB / ${s.prefix_tokens} tokens`
-        : '';
+      document.getElementById('status-model').textContent = s.model_name;
+      document.getElementById('status-tools').textContent = s.num_tools > 0
+        ? `${s.num_tools} tools (${s.tool_names.join(', ')})` : 'No tools loaded';
+      document.getElementById('status-cache').textContent = s.cache_size_mb > 0
+        ? `Cache: ${s.cache_size_mb} MB / ${s.prefix_tokens} tokens` : '';
     }
   } catch (e) {
-    dot.className = 'status-dot red';
-    htxt.textContent = 'disconnected';
+    dot.className = 'status-dot red'; htxt.textContent = 'disconnected';
   }
 }
 
-// --- Tools actions ---
+// --- Profiles ---
+async function loadProfiles() {
+  try {
+    const r = await fetch(`${API}/profiles`);
+    if (!r.ok) return;
+    const profiles = await r.json();
+    if (profiles.length === 0) return;
+    const row = document.getElementById('profile-row');
+    const sel = document.getElementById('profile-select');
+    row.style.display = 'flex';
+    profiles.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id; opt.textContent = `${p.name} (${p.num_tools} tools)`;
+      opt.dataset.queries = JSON.stringify(p.sample_queries);
+      sel.appendChild(opt);
+    });
+  } catch (e) { /* profiles not available */ }
+}
+
+async function loadProfile(profileId) {
+  if (!profileId) return;
+  const result = document.getElementById('tools-result');
+  const textarea = document.getElementById('tools-input');
+  try {
+    const r = await fetch(`${API}/profiles/${profileId}/tools`);
+    if (r.ok) {
+      const tools = await r.json();
+      textarea.value = JSON.stringify(tools, null, 2);
+      showResult(result, `Loaded ${tools.length} tools from "${profileId}". Click Register.`);
+      // Show sample queries
+      const sel = document.getElementById('profile-select');
+      const opt = sel.options[sel.selectedIndex];
+      const queries = JSON.parse(opt.dataset.queries || '[]');
+      showSampleQueries(queries);
+    }
+  } catch (e) { showResult(result, `Error: ${e.message}`, 'error'); }
+}
+
+function showSampleQueries(queries) {
+  const container = document.getElementById('sample-queries');
+  const list = document.getElementById('sample-queries-list');
+  if (queries.length === 0) { container.style.display = 'none'; return; }
+  container.style.display = 'block';
+  list.innerHTML = '';
+  queries.forEach(q => {
+    const div = document.createElement('div');
+    div.className = 'sample-q';
+    div.innerHTML = `<span class="try-btn">Try</span> <span>${q}</span>`;
+    div.onclick = () => {
+      document.getElementById('query-input').value = q;
+      document.getElementById('query-input').focus();
+    };
+    list.appendChild(div);
+  });
+}
+
+// --- Tools ---
 async function registerTools() {
   const btn = document.getElementById('btn-register');
   const result = document.getElementById('tools-result');
   const input = document.getElementById('tools-input').value.trim();
-
-  if (!input) {
-    showResult(result, 'Paste tool schemas first.', 'error');
-    return;
-  }
-
+  if (!input) { showResult(result, 'Paste tool schemas first.', 'error'); return; }
   let tools;
   try {
     tools = JSON.parse(input);
     if (!Array.isArray(tools)) tools = [tools];
-  } catch (e) {
-    showResult(result, `Invalid JSON: ${e.message}`, 'error');
-    return;
-  }
+  } catch (e) { showResult(result, `Invalid JSON: ${e.message}`, 'error'); return; }
 
-  btn.setAttribute('aria-busy', 'true');
-  btn.textContent = 'Compiling...';
+  btn.setAttribute('aria-busy', 'true'); btn.textContent = 'Compiling...';
   try {
     const r = await fetch(`${API}/tools`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({tools}),
     });
     const data = await r.json();
     if (r.ok) {
-      showResult(result,
-        `Status: ${data.status} | ${data.num_tools} tools | ` +
-        `${data.compile_ms}ms | ${data.cache_size_mb} MB | ` +
-        `${data.prefix_tokens} prefix tokens` +
-        (data.from_disk ? ' (from disk)' : ''));
+      showResult(result, `${data.status} | ${data.num_tools} tools | ${data.compile_ms}ms | ${data.cache_size_mb} MB | ${data.prefix_tokens} prefix tokens` + (data.from_disk ? ' (disk)' : ''));
     } else {
       showResult(result, `Error: ${data.detail || JSON.stringify(data)}`, 'error');
     }
-  } catch (e) {
-    showResult(result, `Network error: ${e.message}`, 'error');
-  } finally {
-    btn.removeAttribute('aria-busy');
-    btn.textContent = 'Register Tools';
-    refreshStatus();
-  }
+  } catch (e) { showResult(result, `Network error: ${e.message}`, 'error'); }
+  finally { btn.removeAttribute('aria-busy'); btn.textContent = 'Register Tools'; refreshStatus(); }
 }
 
 async function loadSample() {
@@ -283,13 +454,9 @@ async function loadSample() {
     if (r.ok) {
       const data = await r.json();
       textarea.value = JSON.stringify(data, null, 2);
-      showResult(result, `Loaded ${data.length} sample tools. Click "Register Tools" to compile.`);
-    } else {
-      showResult(result, 'Failed to load sample tools.', 'error');
+      showResult(result, `Loaded ${data.length} sample tools. Click Register.`);
     }
-  } catch (e) {
-    showResult(result, `Network error: ${e.message}`, 'error');
-  }
+  } catch (e) { showResult(result, `Error: ${e.message}`, 'error'); }
 }
 
 async function clearTools() {
@@ -297,76 +464,140 @@ async function clearTools() {
   try {
     const r = await fetch(`${API}/tools`, {method: 'DELETE'});
     const data = await r.json();
-    if (r.ok) {
-      showResult(result, `Cleared ${data.tools_removed} tools.`);
-    } else {
-      showResult(result, `Error: ${data.detail || JSON.stringify(data)}`, 'error');
-    }
-  } catch (e) {
-    showResult(result, `Network error: ${e.message}`, 'error');
-  }
+    if (r.ok) showResult(result, `Cleared ${data.tools_removed} tools.`);
+  } catch (e) { showResult(result, `Error: ${e.message}`, 'error'); }
+  document.getElementById('sample-queries').style.display = 'none';
   refreshStatus();
 }
 
 function showResult(el, text, type) {
   el.textContent = text;
-  el.className = type === 'error' ? 'alert error show' : '';
-  el.classList.add('show');
-  el.id = el.id; // keep id
+  el.className = type === 'error' ? 'alert error show' : 'show';
   el.style.display = 'block';
+}
+
+// --- Query mode toggle ---
+function setQueryMode(mode) {
+  queryMode = mode;
+  document.getElementById('btn-single').className = mode === 'single' ? 'active' : '';
+  document.getElementById('btn-compare').className = mode === 'compare' ? 'active' : '';
+  document.getElementById('ab-compare').style.display = mode === 'compare' ? 'block' : 'none';
 }
 
 // --- Query ---
 async function sendQuery() {
-  const btn = document.getElementById('query-send');
   const input = document.getElementById('query-input');
   const area = document.getElementById('response-area');
   const timingsEl = document.getElementById('timings');
   const query = input.value.trim();
-
   if (!query) return;
 
-  btn.setAttribute('aria-busy', 'true');
-  btn.textContent = 'Generating...';
   area.textContent = 'Generating...';
   timingsEl.innerHTML = '';
 
+  if (queryMode === 'compare') {
+    await sendCompareQuery(query);
+  } else {
+    await sendSingleQuery(query);
+  }
+}
+
+async function sendSingleQuery(query) {
+  const area = document.getElementById('response-area');
+  const timingsEl = document.getElementById('timings');
   try {
     const t0 = performance.now();
     const r = await fetch(`${API}/query`, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      method: 'POST', headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({query, max_new_tokens: 256}),
     });
     const roundTrip = (performance.now() - t0).toFixed(0);
+    if (r.ok) {
+      const data = await r.json();
+      area.textContent = data.response;
+      const t = data.timings;
+      const badge = data.cache_hit ? '<span class="badge hit">CACHE HIT</span>' : '<span class="badge miss">CACHE MISS</span>';
+      timingsEl.innerHTML = `${badge} <span>TTFT: ${t.ttft_ms || t.prefill_query_ms || 0}ms</span> <span>Decode: ${t.decode_ms || 0}ms</span> <span>Total: ${t.total_ms || 0}ms</span> <span>Round-trip: ${roundTrip}ms</span>`;
 
+      // Update stats
+      stats.queries++;
+      if (data.cache_hit) { stats.hits++; stats.saved_ms += 673; } // 787 - 114 = 673ms saved per hit
+      else { stats.misses++; }
+      saveStats(); updateStatsUI();
+
+      // Chart
+      const ttft = t.ttft_ms || t.prefill_query_ms || 0;
+      addLatencyPoint(ttft, 787);
+    } else {
+      const data = await r.json();
+      area.innerHTML = `<span class="badge error">ERROR ${r.status}</span>\n${data.detail || JSON.stringify(data)}`;
+    }
+  } catch (e) { area.textContent = `Network error: ${e.message}`; }
+}
+
+async function sendCompareQuery(query) {
+  const area = document.getElementById('response-area');
+  const timingsEl = document.getElementById('timings');
+  const abCompare = document.getElementById('ab-compare');
+  try {
+    const r = await fetch(`${API}/query/compare`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({query, max_new_tokens: 256}),
+    });
     if (r.ok) {
       const data = await r.json();
       area.textContent = data.response;
 
-      const t = data.timings;
-      const badge = data.cache_hit
-        ? '<span class="badge hit">CACHE HIT</span>'
-        : '<span class="badge miss">CACHE MISS</span>';
-      timingsEl.innerHTML = `
-        ${badge}
-        <span>Link: ${t.link_ms || 0}ms</span>
-        <span>Prefill: ${t.prefill_query_ms || 0}ms</span>
-        <span>Decode: ${t.decode_ms || 0}ms</span>
-        <span>Total: ${t.total_ms || 0}ms</span>
-        <span>Round-trip: ${roundTrip}ms</span>
-      `;
+      const fullTTFT = data.full_prefill_timings.ttft_ms;
+      const cachedTTFT = data.cached_timings.ttft_ms;
+      const speedup = data.speedup;
+
+      timingsEl.innerHTML = `<span class="badge hit">CACHED</span> <span>Full: ${fullTTFT.toFixed(0)}ms</span> <span>Cached: ${cachedTTFT.toFixed(0)}ms</span> <span>Speedup: ${speedup}x</span>`;
+
+      // Animate bars
+      abCompare.style.display = 'block';
+      const fullBar = document.getElementById('ab-bar-full');
+      const cachedBar = document.getElementById('ab-bar-cached');
+      const speedupBadge = document.getElementById('speedup-badge');
+
+      fullBar.style.width = '0%';
+      cachedBar.style.width = '0%';
+      setTimeout(() => {
+        fullBar.style.width = '100%';
+        fullBar.textContent = `${fullTTFT.toFixed(0)}ms`;
+        const cachedPct = Math.max(5, (cachedTTFT / fullTTFT) * 100);
+        cachedBar.style.width = cachedPct + '%';
+        cachedBar.textContent = `${cachedTTFT.toFixed(0)}ms`;
+        speedupBadge.textContent = `${speedup}x faster`;
+      }, 100);
+
+      // Stats
+      stats.queries++;
+      stats.hits++;
+      stats.saved_ms += fullTTFT - cachedTTFT;
+      saveStats(); updateStatsUI();
+      addLatencyPoint(cachedTTFT, fullTTFT);
     } else {
       const data = await r.json();
-      area.innerHTML = `<span class="badge error">ERROR ${r.status}</span>\n${data.detail || JSON.stringify(data)}`;
-      timingsEl.innerHTML = '';
+      area.innerHTML = `<span class="badge error">ERROR</span>\n${data.detail}`;
     }
-  } catch (e) {
-    area.textContent = `Network error: ${e.message}`;
-  } finally {
-    btn.removeAttribute('aria-busy');
-    btn.textContent = 'Send';
-  }
+  } catch (e) { area.textContent = `Network error: ${e.message}`; }
+}
+
+// --- Cost calculator ---
+function updateCalc() {
+  const reqs = parseInt(document.getElementById('calc-requests').value) || 0;
+  const cost = parseFloat(document.getElementById('calc-gpu-cost').value) || 0;
+  const savingsPerReq = 0.673; // seconds saved per cached request
+  const hitRate = 0.95; // assume 95% hit rate in production
+  const dailySaved = reqs * hitRate * savingsPerReq; // seconds
+  const dailyGpuHours = dailySaved / 3600;
+  const monthlySavings = dailyGpuHours * cost * 30;
+
+  document.getElementById('calc-result').innerHTML =
+    `Daily: <strong>${dailyGpuHours.toFixed(1)} GPU-hours</strong> saved ` +
+    `| Monthly: <strong>$${monthlySavings.toFixed(0)}</strong> saved ` +
+    `<span style="color:var(--cc-dim)">(at ${(hitRate*100).toFixed(0)}% hit rate)</span>`;
 }
 
 // --- Init ---

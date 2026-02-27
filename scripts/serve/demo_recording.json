@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "recorded_at": "2026-02-26T10:00:00Z",
+    "model": "Qwen/Qwen3-8B (4-bit NF4)",
+    "gpu": "NVIDIA RTX 3090 Ti",
+    "num_tools_per_profile": 5,
+    "cache_size_mb": 401.0,
+    "prefix_tokens": 2851
+  },
+  "timing_profiles": {
+    "compile": {
+      "mean": 1386.0,
+      "std": 85.0
+    },
+    "full_prefill": {
+      "mean": 787.0,
+      "std": 32.0
+    },
+    "cached": {
+      "link_ms": {"mean": 2.0, "std": 0.13},
+      "prefill_ms": {"mean": 112.0, "std": 11.4},
+      "decode_ms": {"mean": 2100.0, "std": 300.0},
+      "total_ttft_ms": {"mean": 114.0, "std": 11.5}
+    }
+  },
+  "recordings": {
+    "customer_service": [
+      {
+        "query": "Where is my order ORD-2026-8891234?",
+        "keywords": ["order", "where", "track", "ORD"],
+        "response": "<tool_call>\n{\"name\": \"track_order\", \"arguments\": {\"order_id\": \"ORD-2026-8891234\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "I want to return the headphones from my last order, they're defective",
+        "keywords": ["return", "headphones", "defective", "exchange"],
+        "response": "<tool_call>\n{\"name\": \"process_return\", \"arguments\": {\"order_id\": \"ORD-2026-8891234\", \"item_id\": \"ITEM-HP-SONY-WH1000\", \"reason\": \"defective\", \"action\": \"refund\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Is the Samsung 65-inch TV available at store 4215?",
+        "keywords": ["samsung", "TV", "available", "inventory", "store", "4215"],
+        "response": "<tool_call>\n{\"name\": \"check_inventory\", \"arguments\": {\"product_name\": \"Samsung 65-inch TV\", \"store_id\": \"4215\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Apply coupon code SAVE20 to my cart",
+        "keywords": ["coupon", "promo", "SAVE20", "apply", "code"],
+        "response": "<tool_call>\n{\"name\": \"apply_coupon\", \"arguments\": {\"coupon_code\": \"SAVE20\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "I need to speak to someone about a billing issue",
+        "keywords": ["speak", "someone", "billing", "issue", "help", "support", "agent"],
+        "response": "<tool_call>\n{\"name\": \"contact_support\", \"arguments\": {\"category\": \"billing\", \"summary\": \"Customer has a billing issue and requests to speak with a human agent\"}}\n</tool_call>",
+        "cache_hit": true
+      }
+    ],
+    "inventory_management": [
+      {
+        "query": "What's the stock level for SKU-TV-SAM65 across all warehouses?",
+        "keywords": ["stock", "SKU", "warehouse", "level", "TV"],
+        "response": "<tool_call>\n{\"name\": \"check_stock\", \"arguments\": {\"sku\": \"SKU-TV-SAM65\", \"location_type\": \"warehouse\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Reorder 500 units of SKU-PAPER-A4 with expedited shipping",
+        "keywords": ["reorder", "500", "SKU", "paper", "expedited"],
+        "response": "<tool_call>\n{\"name\": \"reorder_product\", \"arguments\": {\"sku\": \"SKU-PAPER-A4\", \"quantity\": 500, \"priority\": \"expedited\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Transfer 200 units of SKU-DETERGENT from warehouse WH-05 to store ST-4215",
+        "keywords": ["transfer", "200", "warehouse", "store", "WH-05", "ST-4215"],
+        "response": "<tool_call>\n{\"name\": \"warehouse_transfer\", \"arguments\": {\"sku\": \"SKU-DETERGENT\", \"quantity\": 200, \"from_location\": \"WH-05\", \"to_location\": \"ST-4215\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Look up barcode 012345678905 with pricing",
+        "keywords": ["barcode", "012345678905", "pricing", "lookup", "scan"],
+        "response": "<tool_call>\n{\"name\": \"scan_barcode\", \"arguments\": {\"barcode\": \"012345678905\", \"include_pricing\": true}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Show me the price history for SKU-LAPTOP-HP15",
+        "keywords": ["price", "history", "SKU", "laptop", "HP15"],
+        "response": "<tool_call>\n{\"name\": \"price_lookup\", \"arguments\": {\"sku\": \"SKU-LAPTOP-HP15\", \"include_history\": true}}\n</tool_call>",
+        "cache_hit": true
+      }
+    ],
+    "analytics": [
+      {
+        "query": "Show me the electronics sales report for last month in the southeast region",
+        "keywords": ["sales", "report", "electronics", "southeast", "month"],
+        "response": "<tool_call>\n{\"name\": \"sales_report\", \"arguments\": {\"start_date\": \"2026-01-01\", \"end_date\": \"2026-01-31\", \"category\": \"electronics\", \"region\": \"southeast\", \"granularity\": \"weekly\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "What are the top 10 trending products by revenue in grocery over the last 30 days?",
+        "keywords": ["trending", "top", "revenue", "grocery", "30"],
+        "response": "<tool_call>\n{\"name\": \"trend_analysis\", \"arguments\": {\"category\": \"grocery\", \"metric\": \"revenue\", \"period\": \"30d\", \"top_n\": 10}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Compare pricing of SKU-TV-SAM65 against competitors",
+        "keywords": ["pricing", "compare", "competitors", "SKU", "TV"],
+        "response": "<tool_call>\n{\"name\": \"competitor_pricing\", \"arguments\": {\"sku\": \"SKU-TV-SAM65\"}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Forecast demand for SKU-PAPER-A4 over the next 30 days with seasonality",
+        "keywords": ["forecast", "demand", "SKU", "paper", "30", "seasonality"],
+        "response": "<tool_call>\n{\"name\": \"forecast_demand\", \"arguments\": {\"sku\": \"SKU-PAPER-A4\", \"forecast_days\": 30, \"include_seasonality\": true}}\n</tool_call>",
+        "cache_hit": true
+      },
+      {
+        "query": "Show customer segments by loyalty tier in the midwest",
+        "keywords": ["customer", "segments", "loyalty", "midwest", "tier"],
+        "response": "<tool_call>\n{\"name\": \"customer_segments\", \"arguments\": {\"segment_type\": \"loyalty_tier\", \"region\": \"midwest\"}}\n</tool_call>",
+        "cache_hit": true
+      }
+    ]
+  }
+}

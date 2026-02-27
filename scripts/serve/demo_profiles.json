@@ -1,0 +1,285 @@
+{
+  "profiles": {
+    "customer_service": {
+      "name": "Customer Service",
+      "description": "Order tracking, returns, inventory checks, and support tools",
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "track_order",
+            "description": "Track the status and location of a customer order by order ID or tracking number",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "order_id": {"type": "string", "description": "The order ID (e.g., ORD-2026-1234567)"},
+                "tracking_number": {"type": "string", "description": "Optional shipping tracking number"}
+              },
+              "required": ["order_id"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "process_return",
+            "description": "Initiate a return or exchange for a purchased item",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "order_id": {"type": "string", "description": "The original order ID"},
+                "item_id": {"type": "string", "description": "The specific item to return"},
+                "reason": {"type": "string", "enum": ["defective", "wrong_item", "changed_mind", "not_as_described", "arrived_late"]},
+                "action": {"type": "string", "enum": ["refund", "exchange"], "description": "Whether to refund or exchange"}
+              },
+              "required": ["order_id", "item_id", "reason", "action"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "check_inventory",
+            "description": "Check if a product is available in store or for delivery in a given area",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_name": {"type": "string", "description": "Product name or SKU"},
+                "store_id": {"type": "string", "description": "Store ID to check (optional, checks all nearby if omitted)"},
+                "zip_code": {"type": "string", "description": "ZIP code for delivery availability check"}
+              },
+              "required": ["product_name"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "apply_coupon",
+            "description": "Apply a coupon or promotional code to an existing order or cart",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "coupon_code": {"type": "string", "description": "The coupon or promo code"},
+                "order_id": {"type": "string", "description": "Order ID to apply coupon to (optional for cart)"}
+              },
+              "required": ["coupon_code"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "contact_support",
+            "description": "Escalate issue to human support agent with context summary",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "category": {"type": "string", "enum": ["billing", "shipping", "product", "account", "other"]},
+                "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"]},
+                "summary": {"type": "string", "description": "Brief description of the issue for the agent"}
+              },
+              "required": ["category", "summary"]
+            }
+          }
+        }
+      ],
+      "sample_queries": [
+        "Where is my order ORD-2026-8891234?",
+        "I want to return the headphones from my last order, they're defective",
+        "Is the Samsung 65-inch TV available at store 4215?",
+        "Apply coupon code SAVE20 to my cart",
+        "I need to speak to someone about a billing issue"
+      ]
+    },
+    "inventory_management": {
+      "name": "Inventory Management",
+      "description": "Stock levels, reordering, warehouse transfers, and pricing tools",
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "check_stock",
+            "description": "Check current stock levels for a product across stores and warehouses",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {"type": "string", "description": "Product SKU"},
+                "location_type": {"type": "string", "enum": ["store", "warehouse", "all"]},
+                "location_id": {"type": "string", "description": "Specific store or warehouse ID (optional)"}
+              },
+              "required": ["sku"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "reorder_product",
+            "description": "Create a purchase order to restock a product from supplier",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {"type": "string", "description": "Product SKU to reorder"},
+                "quantity": {"type": "integer", "description": "Number of units to order"},
+                "supplier_id": {"type": "string", "description": "Preferred supplier (auto-selected if omitted)"},
+                "priority": {"type": "string", "enum": ["standard", "expedited", "emergency"]}
+              },
+              "required": ["sku", "quantity"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "warehouse_transfer",
+            "description": "Transfer inventory between warehouses or from warehouse to store",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {"type": "string", "description": "Product SKU"},
+                "quantity": {"type": "integer", "description": "Units to transfer"},
+                "from_location": {"type": "string", "description": "Source warehouse/store ID"},
+                "to_location": {"type": "string", "description": "Destination warehouse/store ID"}
+              },
+              "required": ["sku", "quantity", "from_location", "to_location"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "scan_barcode",
+            "description": "Look up product details by barcode (UPC/EAN)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "barcode": {"type": "string", "description": "UPC or EAN barcode number"},
+                "include_pricing": {"type": "boolean", "description": "Include current pricing info"}
+              },
+              "required": ["barcode"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "price_lookup",
+            "description": "Look up current and historical pricing for a product",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {"type": "string", "description": "Product SKU"},
+                "include_history": {"type": "boolean", "description": "Include 30-day price history"},
+                "include_competitors": {"type": "boolean", "description": "Include competitor pricing"}
+              },
+              "required": ["sku"]
+            }
+          }
+        }
+      ],
+      "sample_queries": [
+        "What's the stock level for SKU-TV-SAM65 across all warehouses?",
+        "Reorder 500 units of SKU-PAPER-A4 with expedited shipping",
+        "Transfer 200 units of SKU-DETERGENT from warehouse WH-05 to store ST-4215",
+        "Look up barcode 012345678905 with pricing",
+        "Show me the price history for SKU-LAPTOP-HP15"
+      ]
+    },
+    "analytics": {
+      "name": "Business Analytics",
+      "description": "Sales reports, demand forecasting, trend analysis, and customer insights",
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "sales_report",
+            "description": "Generate a sales report for a given time period and category",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD)"},
+                "end_date": {"type": "string", "description": "End date (YYYY-MM-DD)"},
+                "category": {"type": "string", "description": "Product category (e.g., electronics, grocery)"},
+                "region": {"type": "string", "description": "Geographic region (e.g., midwest, southeast)"},
+                "granularity": {"type": "string", "enum": ["daily", "weekly", "monthly"]}
+              },
+              "required": ["start_date", "end_date"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "trend_analysis",
+            "description": "Analyze sales trends and identify top/bottom performers",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "category": {"type": "string", "description": "Product category to analyze"},
+                "metric": {"type": "string", "enum": ["revenue", "units_sold", "margin", "returns"]},
+                "period": {"type": "string", "enum": ["7d", "30d", "90d", "1y"]},
+                "top_n": {"type": "integer", "description": "Number of top/bottom items to return"}
+              },
+              "required": ["category", "metric", "period"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "competitor_pricing",
+            "description": "Compare product pricing against competitors",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {"type": "string", "description": "Product SKU to compare"},
+                "competitors": {"type": "array", "items": {"type": "string"}, "description": "List of competitor names to check"}
+              },
+              "required": ["sku"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "forecast_demand",
+            "description": "Forecast product demand for upcoming period based on historical data",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {"type": "string", "description": "Product SKU"},
+                "forecast_days": {"type": "integer", "description": "Number of days to forecast (7-90)"},
+                "include_seasonality": {"type": "boolean", "description": "Account for seasonal patterns"}
+              },
+              "required": ["sku", "forecast_days"]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_segments",
+            "description": "Retrieve customer segmentation data and demographics",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "segment_type": {"type": "string", "enum": ["spending", "frequency", "demographics", "loyalty_tier"]},
+                "region": {"type": "string", "description": "Filter by region (optional)"},
+                "min_spend": {"type": "number", "description": "Minimum spend threshold"}
+              },
+              "required": ["segment_type"]
+            }
+          }
+        }
+      ],
+      "sample_queries": [
+        "Show me the electronics sales report for last month in the southeast region",
+        "What are the top 10 trending products by revenue in grocery over the last 30 days?",
+        "Compare pricing of SKU-TV-SAM65 against competitors",
+        "Forecast demand for SKU-PAPER-A4 over the next 30 days with seasonality",
+        "Show customer segments by loyalty tier in the midwest"
+      ]
+    }
+  }
+}
