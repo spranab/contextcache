@@ -72,6 +72,18 @@ class ModelAdapter(ABC):
         """Return the set of token IDs that should stop generation."""
         ...
 
+    def get_stop_sequences(self) -> list[list[int]]:
+        """Return multi-token stop sequences (e.g., </tool_call>)."""
+        return []
+
+    def get_forced_prefix_ids(self) -> list[int]:
+        """Return token IDs to force as the first generated tokens.
+
+        Used to steer generation toward structured tool call format
+        (e.g., force '<tool_call>\\n{' as the output prefix).
+        """
+        return []
+
     def get_layer_devices(self) -> list:
         """Get the device each transformer layer resides on."""
         import torch
@@ -162,7 +174,22 @@ class QwenAdapter(ModelAdapter):
         endoftext = self.tokenizer.encode("<|endoftext|>", add_special_tokens=False)
         if endoftext:
             ids.add(endoftext[0])
+        # Also stop on the last token of </tool_call> (catches single-token case)
+        end_tag = self.tokenizer.encode("</tool_call>", add_special_tokens=False)
+        if end_tag:
+            ids.add(end_tag[-1])
         return ids
+
+    def get_stop_sequences(self) -> list[list[int]]:
+        sequences = []
+        end_tag = self.tokenizer.encode("</tool_call>", add_special_tokens=False)
+        if end_tag and len(end_tag) > 1:
+            sequences.append(end_tag)
+        return sequences
+
+    def get_forced_prefix_ids(self) -> list[int]:
+        prefix = "<tool_call>\n{"
+        return self.tokenizer.encode(prefix, add_special_tokens=False)
 
     def _get_layers(self):
         return self.model.model.layers

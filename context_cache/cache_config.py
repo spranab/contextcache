@@ -1,4 +1,5 @@
 """Configuration for ContextCache."""
+from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -47,11 +48,19 @@ class EvalConfig:
 
 
 @dataclass
+class GenerationConfig:
+    force_tool_call_prefix: bool = True
+    stop_on_tool_call_end: bool = True
+    max_new_tokens: int = 256
+
+
+@dataclass
 class ContextCacheConfig:
     model: ModelConfig = field(default_factory=ModelConfig)
     cache: CacheStorageConfig = field(default_factory=CacheStorageConfig)
     rope: RoPEConfig = field(default_factory=RoPEConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
+    generation: GenerationConfig = field(default_factory=GenerationConfig)
     system_prompt: str = "You are a helpful assistant with access to the following tools. Use them when appropriate to help the user."
 
     @classmethod
@@ -64,6 +73,7 @@ class ContextCacheConfig:
         cache_cfg = CacheStorageConfig(**data.get("cache", {}))
         rope_cfg = RoPEConfig(**data.get("rope", {}))
         eval_cfg = EvalConfig(**data.get("eval", {}))
+        gen_cfg = GenerationConfig(**data.get("generation", {}))
         system_prompt = data.get("system_prompt", cls.system_prompt)
 
         return cls(
@@ -71,5 +81,6 @@ class ContextCacheConfig:
             cache=cache_cfg,
             rope=rope_cfg,
             eval=eval_cfg,
+            generation=gen_cfg,
             system_prompt=system_prompt,
         )

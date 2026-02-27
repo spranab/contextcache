@@ -1,0 +1,25 @@
+{
+  "default": {
+    "provider": "claude",
+    "api_key": "sk-ant-your-key-here",
+    "model": "claude-sonnet-4-20250514"
+  },
+  "tool_configs": {
+    "merchant": {
+      "provider": "claude",
+      "api_key": "sk-ant-merchant-team-key",
+      "model": "claude-sonnet-4-20250514",
+      "system_prompt": "You are a merchant analytics assistant. Answer questions about business metrics using the tool results provided."
+    },
+    "support": {
+      "provider": "openai",
+      "api_key": "sk-openai-support-team-key",
+      "model": "gpt-4o",
+      "base_url": "https://llm-gateway.internal.company.com/v1/chat/completions",
+      "extra_headers": {
+        "X-Team-Id": "customer-support",
+        "X-Env": "production"
+      }
+    }
+  }
+}

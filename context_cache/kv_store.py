@@ -1,13 +1,15 @@
 """Persistent hash-addressed KV cache store.
 
 Stores NoPE (No Positional Encoding) KV states on disk with content-hash keys.
-When content changes, the hash changes → automatic cache invalidation.
+When content changes, the hash changes -> automatic cache invalidation.
 
 Storage format:
     cache_dir/
         index.json          # {hash: {name, content_type, num_tokens, file}}
         kv_{hash[:16]}.pt   # {keys: [L tensors], values: [L tensors], num_tokens: int}
 """
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -215,7 +217,8 @@ class ContextKVStore:
     def clear_gpu_cache(self):
         """Release all GPU-cached KV states."""
         self._gpu_cache.clear()
-        torch.cuda.empty_cache()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     def __len__(self) -> int:
         return len(self._index)

@@ -1,13 +1,15 @@
 """ContextCacheModel: Qwen3-8B with NoPE KV capture for position-independent caching.
 
 Three-phase architecture:
-1. COMPILE: Forward a context block → capture pre-RoPE keys → store with content hash
-2. LINK: Load cached NoPE KV → apply deferred RoPE at correct positions → compose
+1. COMPILE: Forward a context block -> capture pre-RoPE keys -> store with content hash
+2. LINK: Load cached NoPE KV -> apply deferred RoPE at correct positions -> compose
 3. EXECUTE: Forward user query with composed KV cache → generate response
 
 The monkey-patch intercepts Qwen3Attention.forward() after k_norm (pre-RoPE keys)
 but before apply_rotary_pos_emb, storing position-independent key states.
 """
+
+from __future__ import annotations
 
 import hashlib
 import json
@@ -32,7 +34,7 @@ class ContextCacheModel:
 
     def __init__(self, config: ContextCacheConfig):
         self.config = config
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = self._detect_device()
 
         # Load model and tokenizer
         print("Loading model...")
@@ -64,12 +66,15 @@ class ContextCacheModel:
 
         # Build RoPE cos/sin tables
         rope_theta = config.rope.theta if config.rope.theta != 1_000_000.0 else self.adapter.rope_theta
+        rope_dtype = torch.float16 if self.device.type == "mps" else (
+            torch.bfloat16 if config.model.bnb_4bit_compute_dtype == "bfloat16" else torch.float16
+        )
         self.rope_cos, self.rope_sin = build_rope_cache(
             max_seq_len=config.rope.max_position,
             head_dim=self.head_dim,
             rope_theta=rope_theta,
             device=self.device,
-            dtype=torch.bfloat16 if config.model.bnb_4bit_compute_dtype == "bfloat16" else torch.float16,
+            dtype=rope_dtype,
         )
 
         # Initialize KV store
@@ -101,6 +106,8 @@ class ContextCacheModel:
 
         # Stop tokens for generation (via adapter)
         self._stop_token_ids = self.adapter.get_stop_token_ids()
+        self._stop_sequences = self.adapter.get_stop_sequences()
+        self._forced_prefix_ids = self.adapter.get_forced_prefix_ids()
 
         print(
             f"ContextCacheModel ready: {self.num_layers} layers, "
@@ -108,11 +115,22 @@ class ContextCacheModel:
             f"adapter={self.adapter.__class__.__name__}"
         )
 
+    @staticmethod
+    def _detect_device() -> torch.device:
+        """Pick the best available device: CUDA > MPS > CPU."""
+        if torch.cuda.is_available():
+            return torch.device("cuda")
+        if hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+            return torch.device("mps")
+        return torch.device("cpu")
+
     def _load_model(self) -> AutoModelForCausalLM:
-        """Load Qwen3-8B with 4-bit quantization."""
+        """Load model with quantization on CUDA, or fp16/fp32 on MPS/CPU."""
         cfg = self.config.model
+        is_cuda = self.device.type == "cuda"
+
         quant_config = None
-        if cfg.load_in_4bit:
+        if cfg.load_in_4bit and is_cuda:
             compute_dtype = (
                 torch.bfloat16 if cfg.bnb_4bit_compute_dtype == "bfloat16" else torch.float16
             )
@@ -122,13 +140,19 @@ class ContextCacheModel:
                 bnb_4bit_quant_type=cfg.bnb_4bit_quant_type,
                 bnb_4bit_use_double_quant=cfg.bnb_4bit_use_double_quant,
             )
+        elif cfg.load_in_4bit and not is_cuda:
+            print(f"  Note: BitsAndBytes 4-bit quantization requires CUDA. "
+                  f"Loading in float16 on {self.device} instead.")
+
+        # MPS doesn't support bfloat16; use float16
+        torch_dtype = torch.float16 if self.device.type == "mps" else torch.bfloat16
 
         model = AutoModelForCausalLM.from_pretrained(
             cfg.model_name,
             quantization_config=quant_config,
-            device_map="auto",
+            device_map=self.device if not is_cuda else "auto",
             trust_remote_code=True,
-            torch_dtype=torch.bfloat16,
+            torch_dtype=torch_dtype,
             attn_implementation="eager",  # Need eager for monkey-patch compatibility
         )
         model.eval()
@@ -376,6 +400,89 @@ class ContextCacheModel:
         return kv_cache, current_pos
 
     # ========================
+    # DECODE LOOP
+    # ========================
+
+    def _decode_loop(
+        self,
+        logits: Tensor,
+        kv_cache: DynamicCache,
+        current_pos: int,
+        max_new_tokens: int,
+        force_prefix: bool = False,
+    ) -> tuple[list[int], DynamicCache, int]:
+        """Shared autoregressive decode loop with forced prefix and stop sequences.
+
+        Args:
+            logits: Logits from the last prefill step, shape [1, vocab_size].
+            kv_cache: KV cache from prefill.
+            current_pos: Current position in the sequence.
+            max_new_tokens: Maximum tokens to generate.
+            force_prefix: If True, force-feed the adapter's forced prefix tokens
+                         before switching to greedy sampling.
+
+        Returns:
+            (generated_ids, kv_cache, final_pos)
+        """
+        generated_ids = []
+        next_token_logits = logits
+
+        # Get forced prefix tokens if enabled
+        prefix_ids = self._forced_prefix_ids if force_prefix else []
+        prefix_idx = 0
+
+        # Buffer for multi-token stop sequence matching
+        stop_seqs = self._stop_sequences
+
+        for step in range(max_new_tokens):
+            if prefix_idx < len(prefix_ids):
+                # Phase 1: Force-feed prefix tokens (no sampling)
+                token_id = prefix_ids[prefix_idx]
+                prefix_idx += 1
+            else:
+                # Phase 2: Greedy decode
+                next_token = torch.argmax(next_token_logits, dim=-1)
+                token_id = next_token.item()
+
+            # Check single-token stop
+            if token_id in self._stop_token_ids:
+                # But don't stop if we're still in forced prefix
+                if prefix_idx >= len(prefix_ids):
+                    break
+
+            generated_ids.append(token_id)
+
+            # Check multi-token stop sequences
+            should_stop = False
+            for seq in stop_seqs:
+                seq_len = len(seq)
+                if len(generated_ids) >= seq_len:
+                    if generated_ids[-seq_len:] == seq:
+                        should_stop = True
+                        break
+            if should_stop:
+                break
+
+            # Forward the token
+            token_tensor = torch.tensor([[token_id]], device=self.device)
+            pos_ids = torch.tensor([[current_pos]], device=self.device)
+            cache_pos = torch.tensor([current_pos], device=self.device)
+
+            outputs = self.model(
+                input_ids=token_tensor,
+                position_ids=pos_ids,
+                past_key_values=kv_cache,
+                cache_position=cache_pos,
+                use_cache=True,
+                return_dict=True,
+            )
+            next_token_logits = outputs.logits[:, -1, :]
+            kv_cache = outputs.past_key_values
+            current_pos += 1
+
+        return generated_ids, kv_cache, current_pos
+
+    # ========================
     # EXECUTE PHASE
     # ========================
 
@@ -446,39 +553,18 @@ class ContextCacheModel:
             return_dict=True,
         )
         timings["prefill_query_ms"] = (time.perf_counter() - t0) * 1000
-        prefix_len = prefix_len + suffix_len  # Update total for decode
+        total_pos = prefix_len + suffix_len
 
-        # Autoregressive generation
+        # Autoregressive generation with forced prefix + stop sequences
+        use_force = self.config.generation.force_tool_call_prefix
         t0 = time.perf_counter()
-        generated_ids = []
-        next_token_logits = outputs.logits[:, -1, :]
-        kv_cache = outputs.past_key_values
-        current_pos = prefix_len
-
-        for _ in range(max_new_tokens):
-            next_token = torch.argmax(next_token_logits, dim=-1)
-            token_id = next_token.item()
-
-            if token_id in self._stop_token_ids:
-                break
-
-            generated_ids.append(token_id)
-
-            pos_ids = torch.tensor([[current_pos]], device=self.device)
-            cache_pos = torch.tensor([current_pos], device=self.device)
-
-            outputs = self.model(
-                input_ids=next_token.unsqueeze(0),
-                position_ids=pos_ids,
-                past_key_values=kv_cache,
-                cache_position=cache_pos,
-                use_cache=True,
-                return_dict=True,
-            )
-            next_token_logits = outputs.logits[:, -1, :]
-            kv_cache = outputs.past_key_values
-            current_pos += 1
-
+        generated_ids, _, _ = self._decode_loop(
+            outputs.logits[:, -1, :],
+            outputs.past_key_values,
+            total_pos,
+            max_new_tokens,
+            force_prefix=use_force,
+        )
         timings["decode_ms"] = (time.perf_counter() - t0) * 1000
         timings["num_generated_tokens"] = len(generated_ids)
 
@@ -589,39 +675,18 @@ class ContextCacheModel:
             return_dict=True,
         )
         timings["prefill_query_ms"] = (time.perf_counter() - t0) * 1000
-        prefix_len = prefix_len + suffix_len
+        total_pos = prefix_len + suffix_len
 
-        # Autoregressive generation
+        # Autoregressive generation with forced prefix + stop sequences
+        use_force = self.config.generation.force_tool_call_prefix
         t0 = time.perf_counter()
-        generated_ids = []
-        next_token_logits = outputs.logits[:, -1, :]
-        kv_cache = outputs.past_key_values
-        current_pos = prefix_len
-
-        for _ in range(max_new_tokens):
-            next_token = torch.argmax(next_token_logits, dim=-1)
-            token_id = next_token.item()
-
-            if token_id in self._stop_token_ids:
-                break
-
-            generated_ids.append(token_id)
-
-            pos_ids = torch.tensor([[current_pos]], device=self.device)
-            cache_pos = torch.tensor([current_pos], device=self.device)
-
-            outputs = self.model(
-                input_ids=next_token.unsqueeze(0),
-                position_ids=pos_ids,
-                past_key_values=kv_cache,
-                cache_position=cache_pos,
-                use_cache=True,
-                return_dict=True,
-            )
-            next_token_logits = outputs.logits[:, -1, :]
-            kv_cache = outputs.past_key_values
-            current_pos += 1
-
+        generated_ids, _, _ = self._decode_loop(
+            outputs.logits[:, -1, :],
+            outputs.past_key_values,
+            total_pos,
+            max_new_tokens,
+            force_prefix=use_force,
+        )
         timings["decode_ms"] = (time.perf_counter() - t0) * 1000
         timings["num_generated_tokens"] = len(generated_ids)
 
@@ -782,37 +847,16 @@ class ContextCacheModel:
         )
         timings["prefill_ms"] = (time.perf_counter() - t0) * 1000
 
-        # Autoregressive generation
+        # Autoregressive generation with forced prefix + stop sequences
+        use_force = self.config.generation.force_tool_call_prefix
         t0 = time.perf_counter()
-        generated_ids = []
-        next_token_logits = outputs.logits[:, -1, :]
-        kv_cache = outputs.past_key_values
-        current_pos = input_ids.shape[1]
-
-        for _ in range(max_new_tokens):
-            next_token = torch.argmax(next_token_logits, dim=-1)
-            token_id = next_token.item()
-
-            if token_id in self._stop_token_ids:
-                break
-
-            generated_ids.append(token_id)
-
-            pos_ids = torch.tensor([[current_pos]], device=self.device)
-            cache_pos = torch.tensor([current_pos], device=self.device)
-
-            outputs = self.model(
-                input_ids=next_token.unsqueeze(0),
-                position_ids=pos_ids,
-                past_key_values=kv_cache,
-                cache_position=cache_pos,
-                use_cache=True,
-                return_dict=True,
-            )
-            next_token_logits = outputs.logits[:, -1, :]
-            kv_cache = outputs.past_key_values
-            current_pos += 1
-
+        generated_ids, _, _ = self._decode_loop(
+            outputs.logits[:, -1, :],
+            outputs.past_key_values,
+            input_ids.shape[1],
+            max_new_tokens,
+            force_prefix=use_force,
+        )
         timings["decode_ms"] = (time.perf_counter() - t0) * 1000
         timings["num_generated_tokens"] = len(generated_ids)
 

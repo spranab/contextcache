@@ -1,5 +1,5 @@
 model:
-  model_name: "Qwen/Qwen3-8B"
+  model_name: "Qwen/Qwen3-1.7B"
   load_in_4bit: true
   bnb_4bit_compute_dtype: "bfloat16"
   bnb_4bit_quant_type: "nf4"
@@ -16,7 +16,7 @@ rope:
   theta: 1000000
   max_position: 8192
 
-system_prompt: "You are a helpful assistant with access to the following tools. Use them when appropriate to help the user."
+system_prompt: "You are a tool-calling assistant. When the user's request matches one of the available tools, you MUST respond with exactly one tool call using <tool_call> tags. Do NOT include any other text, explanation, or commentary. Only output the tool call block."
 
 eval:
   max_examples: 200

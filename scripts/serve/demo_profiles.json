@@ -12,10 +12,18 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "order_id": {"type": "string", "description": "The order ID (e.g., ORD-2026-1234567)"},
-                "tracking_number": {"type": "string", "description": "Optional shipping tracking number"}
+                "order_id": {
+                  "type": "string",
+                  "description": "The order ID (e.g., ORD-2026-1234567)"
+                },
+                "tracking_number": {
+                  "type": "string",
+                  "description": "Optional shipping tracking number"
+                }
               },
-              "required": ["order_id"]
+              "required": [
+                "order_id"
+              ]
             }
           }
         },
@@ -27,12 +35,39 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "order_id": {"type": "string", "description": "The original order ID"},
-                "item_id": {"type": "string", "description": "The specific item to return"},
-                "reason": {"type": "string", "enum": ["defective", "wrong_item", "changed_mind", "not_as_described", "arrived_late"]},
-                "action": {"type": "string", "enum": ["refund", "exchange"], "description": "Whether to refund or exchange"}
+                "order_id": {
+                  "type": "string",
+                  "description": "The original order ID"
+                },
+                "item_id": {
+                  "type": "string",
+                  "description": "The specific item to return"
+                },
+                "reason": {
+                  "type": "string",
+                  "enum": [
+                    "defective",
+                    "wrong_item",
+                    "changed_mind",
+                    "not_as_described",
+                    "arrived_late"
+                  ]
+                },
+                "action": {
+                  "type": "string",
+                  "enum": [
+                    "refund",
+                    "exchange"
+                  ],
+                  "description": "Whether to refund or exchange"
+                }
               },
-              "required": ["order_id", "item_id", "reason", "action"]
+              "required": [
+                "order_id",
+                "item_id",
+                "reason",
+                "action"
+              ]
             }
           }
         },
@@ -44,11 +79,22 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "product_name": {"type": "string", "description": "Product name or SKU"},
-                "store_id": {"type": "string", "description": "Store ID to check (optional, checks all nearby if omitted)"},
-                "zip_code": {"type": "string", "description": "ZIP code for delivery availability check"}
+                "product_name": {
+                  "type": "string",
+                  "description": "Product name or SKU"
+                },
+                "store_id": {
+                  "type": "string",
+                  "description": "Store ID to check (optional, checks all nearby if omitted)"
+                },
+                "zip_code": {
+                  "type": "string",
+                  "description": "ZIP code for delivery availability check"
+                }
               },
-              "required": ["product_name"]
+              "required": [
+                "product_name"
+              ]
             }
           }
         },
@@ -60,10 +106,18 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "coupon_code": {"type": "string", "description": "The coupon or promo code"},
-                "order_id": {"type": "string", "description": "Order ID to apply coupon to (optional for cart)"}
+                "coupon_code": {
+                  "type": "string",
+                  "description": "The coupon or promo code"
+                },
+                "order_id": {
+                  "type": "string",
+                  "description": "Order ID to apply coupon to (optional for cart)"
+                }
               },
-              "required": ["coupon_code"]
+              "required": [
+                "coupon_code"
+              ]
             }
           }
         },
@@ -75,11 +129,34 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "category": {"type": "string", "enum": ["billing", "shipping", "product", "account", "other"]},
-                "priority": {"type": "string", "enum": ["low", "medium", "high", "urgent"]},
-                "summary": {"type": "string", "description": "Brief description of the issue for the agent"}
+                "category": {
+                  "type": "string",
+                  "enum": [
+                    "billing",
+                    "shipping",
+                    "product",
+                    "account",
+                    "other"
+                  ]
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "low",
+                    "medium",
+                    "high",
+                    "urgent"
+                  ]
+                },
+                "summary": {
+                  "type": "string",
+                  "description": "Brief description of the issue for the agent"
+                }
               },
-              "required": ["category", "summary"]
+              "required": [
+                "category",
+                "summary"
+              ]
             }
           }
         }
@@ -104,11 +181,26 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "sku": {"type": "string", "description": "Product SKU"},
-                "location_type": {"type": "string", "enum": ["store", "warehouse", "all"]},
-                "location_id": {"type": "string", "description": "Specific store or warehouse ID (optional)"}
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "location_type": {
+                  "type": "string",
+                  "enum": [
+                    "store",
+                    "warehouse",
+                    "all"
+                  ]
+                },
+                "location_id": {
+                  "type": "string",
+                  "description": "Specific store or warehouse ID (optional)"
+                }
               },
-              "required": ["sku"]
+              "required": [
+                "sku"
+              ]
             }
           }
         },
@@ -120,12 +212,31 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "sku": {"type": "string", "description": "Product SKU to reorder"},
-                "quantity": {"type": "integer", "description": "Number of units to order"},
-                "supplier_id": {"type": "string", "description": "Preferred supplier (auto-selected if omitted)"},
-                "priority": {"type": "string", "enum": ["standard", "expedited", "emergency"]}
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU to reorder"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Number of units to order"
+                },
+                "supplier_id": {
+                  "type": "string",
+                  "description": "Preferred supplier (auto-selected if omitted)"
+                },
+                "priority": {
+                  "type": "string",
+                  "enum": [
+                    "standard",
+                    "expedited",
+                    "emergency"
+                  ]
+                }
               },
-              "required": ["sku", "quantity"]
+              "required": [
+                "sku",
+                "quantity"
+              ]
             }
           }
         },
@@ -137,12 +248,29 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "sku": {"type": "string", "description": "Product SKU"},
-                "quantity": {"type": "integer", "description": "Units to transfer"},
-                "from_location": {"type": "string", "description": "Source warehouse/store ID"},
-                "to_location": {"type": "string", "description": "Destination warehouse/store ID"}
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "quantity": {
+                  "type": "integer",
+                  "description": "Units to transfer"
+                },
+                "from_location": {
+                  "type": "string",
+                  "description": "Source warehouse/store ID"
+                },
+                "to_location": {
+                  "type": "string",
+                  "description": "Destination warehouse/store ID"
+                }
               },
-              "required": ["sku", "quantity", "from_location", "to_location"]
+              "required": [
+                "sku",
+                "quantity",
+                "from_location",
+                "to_location"
+              ]
             }
           }
         },
@@ -154,10 +282,18 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "barcode": {"type": "string", "description": "UPC or EAN barcode number"},
-                "include_pricing": {"type": "boolean", "description": "Include current pricing info"}
+                "barcode": {
+                  "type": "string",
+                  "description": "UPC or EAN barcode number"
+                },
+                "include_pricing": {
+                  "type": "boolean",
+                  "description": "Include current pricing info"
+                }
               },
-              "required": ["barcode"]
+              "required": [
+                "barcode"
+              ]
             }
           }
         },
@@ -169,11 +305,22 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "sku": {"type": "string", "description": "Product SKU"},
-                "include_history": {"type": "boolean", "description": "Include 30-day price history"},
-                "include_competitors": {"type": "boolean", "description": "Include competitor pricing"}
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "include_history": {
+                  "type": "boolean",
+                  "description": "Include 30-day price history"
+                },
+                "include_competitors": {
+                  "type": "boolean",
+                  "description": "Include competitor pricing"
+                }
               },
-              "required": ["sku"]
+              "required": [
+                "sku"
+              ]
             }
           }
         }
@@ -198,13 +345,35 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD)"},
-                "end_date": {"type": "string", "description": "End date (YYYY-MM-DD)"},
-                "category": {"type": "string", "description": "Product category (e.g., electronics, grocery)"},
-                "region": {"type": "string", "description": "Geographic region (e.g., midwest, southeast)"},
-                "granularity": {"type": "string", "enum": ["daily", "weekly", "monthly"]}
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Product category (e.g., electronics, grocery)"
+                },
+                "region": {
+                  "type": "string",
+                  "description": "Geographic region (e.g., midwest, southeast)"
+                },
+                "granularity": {
+                  "type": "string",
+                  "enum": [
+                    "daily",
+                    "weekly",
+                    "monthly"
+                  ]
+                }
               },
-              "required": ["start_date", "end_date"]
+              "required": [
+                "start_date",
+                "end_date"
+              ]
             }
           }
         },
@@ -216,12 +385,38 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "category": {"type": "string", "description": "Product category to analyze"},
-                "metric": {"type": "string", "enum": ["revenue", "units_sold", "margin", "returns"]},
-                "period": {"type": "string", "enum": ["7d", "30d", "90d", "1y"]},
-                "top_n": {"type": "integer", "description": "Number of top/bottom items to return"}
+                "category": {
+                  "type": "string",
+                  "description": "Product category to analyze"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "revenue",
+                    "units_sold",
+                    "margin",
+                    "returns"
+                  ]
+                },
+                "period": {
+                  "type": "string",
+                  "enum": [
+                    "7d",
+                    "30d",
+                    "90d",
+                    "1y"
+                  ]
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of top/bottom items to return"
+                }
               },
-              "required": ["category", "metric", "period"]
+              "required": [
+                "category",
+                "metric",
+                "period"
+              ]
             }
           }
         },
@@ -233,10 +428,21 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "sku": {"type": "string", "description": "Product SKU to compare"},
-                "competitors": {"type": "array", "items": {"type": "string"}, "description": "List of competitor names to check"}
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU to compare"
+                },
+                "competitors": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of competitor names to check"
+                }
               },
-              "required": ["sku"]
+              "required": [
+                "sku"
+              ]
             }
           }
         },
@@ -248,11 +454,23 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "sku": {"type": "string", "description": "Product SKU"},
-                "forecast_days": {"type": "integer", "description": "Number of days to forecast (7-90)"},
-                "include_seasonality": {"type": "boolean", "description": "Account for seasonal patterns"}
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "forecast_days": {
+                  "type": "integer",
+                  "description": "Number of days to forecast (7-90)"
+                },
+                "include_seasonality": {
+                  "type": "boolean",
+                  "description": "Account for seasonal patterns"
+                }
               },
-              "required": ["sku", "forecast_days"]
+              "required": [
+                "sku",
+                "forecast_days"
+              ]
             }
           }
         },
@@ -264,11 +482,27 @@
             "parameters": {
               "type": "object",
               "properties": {
-                "segment_type": {"type": "string", "enum": ["spending", "frequency", "demographics", "loyalty_tier"]},
-                "region": {"type": "string", "description": "Filter by region (optional)"},
-                "min_spend": {"type": "number", "description": "Minimum spend threshold"}
+                "segment_type": {
+                  "type": "string",
+                  "enum": [
+                    "spending",
+                    "frequency",
+                    "demographics",
+                    "loyalty_tier"
+                  ]
+                },
+                "region": {
+                  "type": "string",
+                  "description": "Filter by region (optional)"
+                },
+                "min_spend": {
+                  "type": "number",
+                  "description": "Minimum spend threshold"
+                }
               },
-              "required": ["segment_type"]
+              "required": [
+                "segment_type"
+              ]
             }
           }
         }
@@ -279,6 +513,2956 @@
         "Compare pricing of SKU-TV-SAM65 against competitors",
         "Forecast demand for SKU-PAPER-A4 over the next 30 days with seasonality",
         "Show customer segments by loyalty tier in the midwest"
+      ]
+    },
+    "merchant_analytics": {
+      "name": "Merchant Analytics",
+      "description": "Complete merchant dashboard with 100 tools covering GMV, orders, products, customers, inventory, marketing, and finance",
+      "tools": [
+        {
+          "type": "function",
+          "function": {
+            "name": "gmv_summary",
+            "description": "Get total Gross Merchandise Value (GMV) for a time period with breakdown by channel",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "website",
+                    "app",
+                    "marketplace",
+                    "social"
+                  ],
+                  "description": "Sales channel filter"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_by_channel",
+            "description": "Break down revenue across sales channels (website, app, marketplace, social commerce)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "granularity": {
+                  "type": "string",
+                  "enum": [
+                    "daily",
+                    "weekly",
+                    "monthly"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_by_category",
+            "description": "Break down revenue by product category with units sold and margins",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of top categories to show"
+                },
+                "include_subcategories": {
+                  "type": "boolean",
+                  "description": "Include subcategory breakdown"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "daily_sales",
+            "description": "Get daily sales data including orders, revenue, and units for a date range",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "compare_previous": {
+                  "type": "boolean",
+                  "description": "Compare with same period in previous year"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "hourly_sales",
+            "description": "Get hourly sales distribution to identify peak selling hours",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "date": {
+                  "type": "string",
+                  "description": "Date to analyze (YYYY-MM-DD)"
+                },
+                "timezone": {
+                  "type": "string",
+                  "description": "Timezone (e.g., Asia/Kolkata)"
+                }
+              },
+              "required": [
+                "date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_trend",
+            "description": "Analyze revenue trend over time with growth rate and moving averages",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "period": {
+                  "type": "string",
+                  "enum": [
+                    "7d",
+                    "30d",
+                    "90d",
+                    "6m",
+                    "1y"
+                  ],
+                  "description": "Lookback period"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "revenue",
+                    "orders",
+                    "units",
+                    "aov"
+                  ],
+                  "description": "Metric to trend"
+                }
+              },
+              "required": [
+                "period"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "aov_analysis",
+            "description": "Analyze Average Order Value (AOV) trends, distribution, and factors",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "segment_by": {
+                  "type": "string",
+                  "enum": [
+                    "channel",
+                    "category",
+                    "customer_type",
+                    "geography"
+                  ],
+                  "description": "Segment AOV by dimension"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_by_payment_method",
+            "description": "Break down revenue by payment method (UPI, cards, COD, wallets, EMI)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "refund_summary",
+            "description": "Get refund and chargeback summary with reasons and amounts",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "reason_filter": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "defective",
+                    "not_delivered",
+                    "wrong_item",
+                    "customer_remorse",
+                    "fraud"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "net_revenue",
+            "description": "Calculate net revenue after returns, refunds, discounts, and platform fees",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "include_breakdown": {
+                  "type": "boolean",
+                  "description": "Show detailed deductions breakdown"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_forecast",
+            "description": "Forecast revenue for upcoming period based on trends and seasonality",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "forecast_days": {
+                  "type": "integer",
+                  "description": "Number of days to forecast (7-90)"
+                },
+                "model": {
+                  "type": "string",
+                  "enum": [
+                    "linear",
+                    "seasonal",
+                    "ml"
+                  ],
+                  "description": "Forecasting model to use"
+                }
+              },
+              "required": [
+                "forecast_days"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_comparison",
+            "description": "Compare revenue across two time periods (e.g., this month vs last month)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "period_1_start": {
+                  "type": "string",
+                  "description": "First period start (YYYY-MM-DD)"
+                },
+                "period_1_end": {
+                  "type": "string",
+                  "description": "First period end (YYYY-MM-DD)"
+                },
+                "period_2_start": {
+                  "type": "string",
+                  "description": "Second period start (YYYY-MM-DD)"
+                },
+                "period_2_end": {
+                  "type": "string",
+                  "description": "Second period end (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "period_1_start",
+                "period_1_end",
+                "period_2_start",
+                "period_2_end"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "seasonal_revenue",
+            "description": "Analyze revenue patterns for seasonal events (Diwali, Black Friday, festivals)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "event": {
+                  "type": "string",
+                  "description": "Event name (e.g., diwali_2025, black_friday_2025)"
+                },
+                "compare_years": {
+                  "type": "integer",
+                  "description": "Number of previous years to compare"
+                }
+              },
+              "required": [
+                "event"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "revenue_by_geography",
+            "description": "Revenue breakdown by state, city, or pin code with heatmap data",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "country",
+                    "state",
+                    "city",
+                    "pincode"
+                  ],
+                  "description": "Geographic granularity"
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Top N locations to show"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date",
+                "level"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "top_revenue_days",
+            "description": "Get the highest revenue days in a period with contributing factors",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of top days to return"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_status",
+            "description": "Look up the current status of a specific order",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "type": "string",
+                  "description": "Order ID (e.g., MO-2026-1234567)"
+                }
+              },
+              "required": [
+                "order_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_search",
+            "description": "Search orders by customer email, phone, product, or date range",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "customer_email": {
+                  "type": "string"
+                },
+                "customer_phone": {
+                  "type": "string"
+                },
+                "product_name": {
+                  "type": "string"
+                },
+                "start_date": {
+                  "type": "string"
+                },
+                "end_date": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "confirmed",
+                    "shipped",
+                    "delivered",
+                    "cancelled",
+                    "returned"
+                  ]
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_volume",
+            "description": "Get order volume metrics (total orders, average per day, peak hours)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "granularity": {
+                  "type": "string",
+                  "enum": [
+                    "hourly",
+                    "daily",
+                    "weekly",
+                    "monthly"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_fulfillment_rate",
+            "description": "Get fulfillment rate, SLA compliance, and average time to ship",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "warehouse_id": {
+                  "type": "string",
+                  "description": "Filter by warehouse"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "cancel_rate",
+            "description": "Get order cancellation rate with reasons breakdown",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "initiated_by": {
+                  "type": "string",
+                  "enum": [
+                    "customer",
+                    "merchant",
+                    "system",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "return_rate",
+            "description": "Get return rate with reasons, refund amounts, and trends",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by product category"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_timeline",
+            "description": "Get detailed timeline of an order from placement to delivery",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "order_id": {
+                  "type": "string",
+                  "description": "Order ID"
+                }
+              },
+              "required": [
+                "order_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "pending_orders",
+            "description": "List all pending orders that need attention (unshipped, payment pending)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "payment_pending",
+                    "unshipped",
+                    "processing",
+                    "on_hold"
+                  ]
+                },
+                "older_than_hours": {
+                  "type": "integer",
+                  "description": "Filter orders older than N hours"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "delayed_orders",
+            "description": "List orders that are delayed beyond promised delivery date",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "min_delay_days": {
+                  "type": "integer",
+                  "description": "Minimum delay in days"
+                },
+                "carrier": {
+                  "type": "string",
+                  "description": "Filter by delivery carrier"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_by_channel",
+            "description": "Break down orders by sales channel with conversion rates",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "bulk_order_lookup",
+            "description": "Look up multiple orders at once by a list of order IDs",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "order_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of order IDs"
+                }
+              },
+              "required": [
+                "order_ids"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "repeat_orders",
+            "description": "Analyze repeat purchase patterns and frequency",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "min_orders": {
+                  "type": "integer",
+                  "description": "Minimum repeat orders to include"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "order_value_distribution",
+            "description": "Get distribution of order values (histogram) with percentiles",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "buckets": {
+                  "type": "integer",
+                  "description": "Number of value buckets"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "cod_vs_prepaid",
+            "description": "Compare Cash on Delivery vs prepaid order metrics",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "shipping_performance",
+            "description": "Analyze shipping carrier performance, delivery times, and costs",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "carrier": {
+                  "type": "string",
+                  "description": "Filter by carrier name"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "delivery_time",
+                    "cost",
+                    "damage_rate",
+                    "rto_rate"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "top_products",
+            "description": "Get top selling products by revenue, units, or margin",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "revenue",
+                    "units_sold",
+                    "margin",
+                    "views",
+                    "conversion"
+                  ]
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of products to return"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date",
+                "metric"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_views",
+            "description": "Get product page view counts and view-to-cart conversion",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "product_id",
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_conversion",
+            "description": "Get product conversion funnel (views -> cart -> checkout -> purchase)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "product_id",
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_ranking",
+            "description": "Get product ranking in category by sales velocity and search position",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Category to rank within"
+                }
+              },
+              "required": [
+                "product_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "slow_movers",
+            "description": "Identify products with declining sales or low turnover",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "days": {
+                  "type": "integer",
+                  "description": "Look back period in days"
+                },
+                "threshold": {
+                  "type": "number",
+                  "description": "Maximum units sold to qualify as slow"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": [
+                "days"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "out_of_stock",
+            "description": "List products currently out of stock with estimated revenue loss",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                },
+                "include_revenue_impact": {
+                  "type": "boolean",
+                  "description": "Calculate estimated lost revenue"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_reviews",
+            "description": "Get product review summary with ratings distribution and sentiment",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "min_rating": {
+                  "type": "integer",
+                  "description": "Filter reviews with minimum star rating"
+                },
+                "sentiment": {
+                  "type": "string",
+                  "enum": [
+                    "positive",
+                    "negative",
+                    "neutral",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "product_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_margin",
+            "description": "Calculate product margin after cost, shipping, platform fees, and returns",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "include_all_costs": {
+                  "type": "boolean",
+                  "description": "Include advertising, warehousing, and return costs"
+                }
+              },
+              "required": [
+                "product_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "category_performance",
+            "description": "Compare performance across product categories",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "metrics": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Metrics to compare (revenue, units, margin, returns)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_comparison",
+            "description": "Side-by-side comparison of two or more products on key metrics",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "List of product IDs to compare"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "product_ids"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "new_product_performance",
+            "description": "Track performance of recently launched products vs benchmarks",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "launched_after": {
+                  "type": "string",
+                  "description": "Show products launched after this date (YYYY-MM-DD)"
+                },
+                "benchmark": {
+                  "type": "string",
+                  "enum": [
+                    "category_average",
+                    "previous_launches",
+                    "target"
+                  ],
+                  "description": "Benchmark to compare against"
+                }
+              },
+              "required": [
+                "launched_after"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_return_rate",
+            "description": "Get return rate for specific products with reason analysis",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "product_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "bundle_performance",
+            "description": "Analyze performance of product bundles and combo offers",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "bundle_id": {
+                  "type": "string",
+                  "description": "Specific bundle ID (optional)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "price_elasticity",
+            "description": "Analyze how price changes affect demand for a product",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID or SKU"
+                },
+                "price_range_min": {
+                  "type": "number",
+                  "description": "Minimum price to analyze"
+                },
+                "price_range_max": {
+                  "type": "number",
+                  "description": "Maximum price to analyze"
+                }
+              },
+              "required": [
+                "product_id"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "product_recommendations",
+            "description": "Get AI-powered product recommendations for cross-sell and upsell",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Base product ID"
+                },
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "cross_sell",
+                    "upsell",
+                    "frequently_bought_together",
+                    "similar"
+                  ]
+                },
+                "max_results": {
+                  "type": "integer",
+                  "description": "Maximum recommendations to return"
+                }
+              },
+              "required": [
+                "product_id",
+                "type"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_count",
+            "description": "Get total customer count with new vs returning breakdown",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "inactive",
+                    "churned",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "new_vs_returning",
+            "description": "Compare new customer vs returning customer metrics",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "metrics": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Metrics to compare (aov, frequency, revenue_share)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_ltv",
+            "description": "Calculate Customer Lifetime Value by segment or cohort",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "segment": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "high_value",
+                    "medium_value",
+                    "low_value",
+                    "new"
+                  ]
+                },
+                "cohort_month": {
+                  "type": "string",
+                  "description": "Specific cohort month (YYYY-MM)"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_segments",
+            "description": "Get customer segmentation breakdown (RFM, spending tiers, behavior)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "segment_type": {
+                  "type": "string",
+                  "enum": [
+                    "rfm",
+                    "spending_tier",
+                    "behavior",
+                    "lifecycle"
+                  ]
+                },
+                "include_size": {
+                  "type": "boolean",
+                  "description": "Include segment sizes and revenue contribution"
+                }
+              },
+              "required": [
+                "segment_type"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_acquisition_cost",
+            "description": "Calculate Customer Acquisition Cost (CAC) by channel",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "organic",
+                    "paid_search",
+                    "social",
+                    "referral",
+                    "email"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "cohort_analysis",
+            "description": "Run cohort analysis showing retention and revenue by acquisition month",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "cohort_start": {
+                  "type": "string",
+                  "description": "First cohort month (YYYY-MM)"
+                },
+                "cohort_end": {
+                  "type": "string",
+                  "description": "Last cohort month (YYYY-MM)"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "retention",
+                    "revenue",
+                    "orders",
+                    "aov"
+                  ]
+                }
+              },
+              "required": [
+                "cohort_start",
+                "cohort_end",
+                "metric"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "churn_rate",
+            "description": "Calculate customer churn rate with risk indicators",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "period": {
+                  "type": "string",
+                  "enum": [
+                    "30d",
+                    "60d",
+                    "90d",
+                    "180d"
+                  ],
+                  "description": "Inactivity period to define churn"
+                },
+                "include_at_risk": {
+                  "type": "boolean",
+                  "description": "Include customers at risk of churning"
+                }
+              },
+              "required": [
+                "period"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_geography",
+            "description": "Map customer distribution by location with density data",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "country",
+                    "state",
+                    "city",
+                    "pincode"
+                  ]
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Top N locations"
+                }
+              },
+              "required": [
+                "level"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_spending_tiers",
+            "description": "Break down customers by spending tier with revenue contribution",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "num_tiers": {
+                  "type": "integer",
+                  "description": "Number of spending tiers"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_feedback",
+            "description": "Aggregate customer feedback and reviews with sentiment analysis",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "reviews",
+                    "support_tickets",
+                    "surveys",
+                    "social",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "nps_score",
+            "description": "Get Net Promoter Score with trend and verbatim comments",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "segment": {
+                  "type": "string",
+                  "description": "Customer segment filter"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_retention",
+            "description": "Calculate customer retention rate over time",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "period": {
+                  "type": "string",
+                  "enum": [
+                    "monthly",
+                    "quarterly",
+                    "yearly"
+                  ]
+                },
+                "num_periods": {
+                  "type": "integer",
+                  "description": "Number of periods to show"
+                }
+              },
+              "required": [
+                "period"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_purchase_frequency",
+            "description": "Analyze how often customers make purchases",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "segment": {
+                  "type": "string",
+                  "description": "Customer segment filter"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "top_customers",
+            "description": "Get top customers by revenue, orders, or lifetime value",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "revenue",
+                    "orders",
+                    "ltv"
+                  ]
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of customers to return"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "metric",
+                "top_n"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "customer_demographics",
+            "description": "Get customer demographic breakdown (age, gender, device, platform)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "dimension": {
+                  "type": "string",
+                  "enum": [
+                    "age",
+                    "gender",
+                    "device",
+                    "platform",
+                    "os"
+                  ]
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "dimension"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "stock_levels",
+            "description": "Get current stock levels across all warehouses for a product or category",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                },
+                "warehouse_id": {
+                  "type": "string",
+                  "description": "Filter by warehouse"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "low_stock_alerts",
+            "description": "List products approaching or below reorder point",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "threshold_days": {
+                  "type": "integer",
+                  "description": "Days of stock remaining threshold"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "inventory_turnover",
+            "description": "Calculate inventory turnover ratio by product or category",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "stock_value",
+            "description": "Calculate total inventory value at cost and retail price",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "valuation_method": {
+                  "type": "string",
+                  "enum": [
+                    "cost",
+                    "retail",
+                    "weighted_average"
+                  ],
+                  "description": "Valuation method"
+                },
+                "warehouse_id": {
+                  "type": "string",
+                  "description": "Filter by warehouse"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "reorder_suggestions",
+            "description": "AI-powered reorder suggestions based on sales velocity and lead times",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                },
+                "urgency": {
+                  "type": "string",
+                  "enum": [
+                    "critical",
+                    "soon",
+                    "planned"
+                  ],
+                  "description": "Urgency level filter"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "dead_stock",
+            "description": "Identify dead stock (products with no sales in N days)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "no_sale_days": {
+                  "type": "integer",
+                  "description": "Number of days with no sales to qualify"
+                },
+                "min_quantity": {
+                  "type": "integer",
+                  "description": "Minimum stock quantity to include"
+                },
+                "include_value": {
+                  "type": "boolean",
+                  "description": "Include tied-up capital value"
+                }
+              },
+              "required": [
+                "no_sale_days"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "stock_by_warehouse",
+            "description": "Compare stock distribution across warehouses",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "include_transit": {
+                  "type": "boolean",
+                  "description": "Include in-transit stock"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "inventory_forecast",
+            "description": "Forecast inventory needs based on demand prediction",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "sku": {
+                  "type": "string",
+                  "description": "Product SKU"
+                },
+                "forecast_days": {
+                  "type": "integer",
+                  "description": "Days to forecast"
+                },
+                "safety_stock_days": {
+                  "type": "integer",
+                  "description": "Safety stock buffer in days"
+                }
+              },
+              "required": [
+                "sku",
+                "forecast_days"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "catalog_health",
+            "description": "Audit catalog for missing images, descriptions, pricing issues",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "check_type": {
+                  "type": "string",
+                  "enum": [
+                    "images",
+                    "descriptions",
+                    "pricing",
+                    "variants",
+                    "all"
+                  ]
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "listing_quality",
+            "description": "Score product listings on completeness and SEO quality",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID"
+                },
+                "min_score": {
+                  "type": "integer",
+                  "description": "Minimum quality score threshold (0-100)"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "sku_count",
+            "description": "Get total SKU count with active/inactive/draft breakdown",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "active",
+                    "inactive",
+                    "draft",
+                    "all"
+                  ]
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "inventory_aging",
+            "description": "Analyze inventory age distribution and identify aging stock",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "age_buckets": {
+                  "type": "array",
+                  "items": {
+                    "type": "integer"
+                  },
+                  "description": "Age bucket boundaries in days (e.g., [30, 60, 90, 180])"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by category"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "stock_transfer_status",
+            "description": "Track status of ongoing inventory transfers between locations",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "transfer_id": {
+                  "type": "string",
+                  "description": "Specific transfer ID"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "in_transit",
+                    "completed",
+                    "all"
+                  ]
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "supplier_performance",
+            "description": "Evaluate supplier performance on delivery time, quality, and cost",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "supplier_id": {
+                  "type": "string",
+                  "description": "Supplier ID"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "delivery_time",
+                    "quality_rate",
+                    "cost",
+                    "fill_rate"
+                  ]
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "procurement_cost",
+            "description": "Analyze procurement costs and trends by supplier or category",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "group_by": {
+                  "type": "string",
+                  "enum": [
+                    "supplier",
+                    "category",
+                    "sku"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "traffic_overview",
+            "description": "Get website/app traffic overview with sessions, users, and page views",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "web",
+                    "mobile_web",
+                    "app_android",
+                    "app_ios"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "traffic_sources",
+            "description": "Break down traffic by source (organic, paid, social, direct, referral)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "include_conversion": {
+                  "type": "boolean",
+                  "description": "Include conversion rate per source"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "campaign_performance",
+            "description": "Get marketing campaign performance metrics (impressions, clicks, conversions, ROAS)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "campaign_id": {
+                  "type": "string",
+                  "description": "Campaign ID"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "google_ads",
+                    "facebook",
+                    "instagram",
+                    "email",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "coupon_usage",
+            "description": "Analyze coupon and discount code usage, redemption rates, and revenue impact",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "coupon_code": {
+                  "type": "string",
+                  "description": "Specific coupon code"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "ad_spend_roi",
+            "description": "Calculate return on ad spend (ROAS) by channel and campaign",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "channel": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "google",
+                    "facebook",
+                    "instagram",
+                    "tiktok",
+                    "affiliate"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "seo_ranking",
+            "description": "Get search engine ranking for store and key product pages",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "keywords": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Keywords to check ranking for"
+                },
+                "search_engine": {
+                  "type": "string",
+                  "enum": [
+                    "google",
+                    "bing",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "keywords"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "social_media_metrics",
+            "description": "Get social media engagement metrics across platforms",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "platform": {
+                  "type": "string",
+                  "enum": [
+                    "all",
+                    "instagram",
+                    "facebook",
+                    "twitter",
+                    "youtube",
+                    "tiktok"
+                  ]
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "email_campaign_stats",
+            "description": "Get email marketing stats (open rate, CTR, conversions, unsubscribes)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "campaign_id": {
+                  "type": "string",
+                  "description": "Campaign ID"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "referral_performance",
+            "description": "Track referral program performance and top referrers",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of top referrers"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "landing_page_conversion",
+            "description": "Get conversion rates for landing pages with A/B test results",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "page_url": {
+                  "type": "string",
+                  "description": "Landing page URL or path"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "search_terms",
+            "description": "Get top search terms on your store with click and conversion data",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "top_n": {
+                  "type": "integer",
+                  "description": "Number of top terms"
+                },
+                "include_zero_results": {
+                  "type": "boolean",
+                  "description": "Include searches with no results"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "bounce_rate",
+            "description": "Get bounce rate by page, source, and device with trends",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "group_by": {
+                  "type": "string",
+                  "enum": [
+                    "page",
+                    "source",
+                    "device",
+                    "overall"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "session_duration",
+            "description": "Analyze average session duration and pages per session",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "segment_by": {
+                  "type": "string",
+                  "enum": [
+                    "source",
+                    "device",
+                    "new_vs_returning"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "cart_abandonment",
+            "description": "Analyze cart abandonment rate with reasons and recovery metrics",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "include_recovery": {
+                  "type": "boolean",
+                  "description": "Include cart recovery email stats"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "marketing_attribution",
+            "description": "Multi-touch attribution analysis showing which channels drive conversions",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "model": {
+                  "type": "string",
+                  "enum": [
+                    "first_touch",
+                    "last_touch",
+                    "linear",
+                    "time_decay",
+                    "position_based"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date",
+                "model"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "payout_summary",
+            "description": "Get payout summary showing pending, processed, and upcoming payouts",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "pending",
+                    "processed",
+                    "upcoming",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "settlement_report",
+            "description": "Get detailed settlement report with order-level breakdown",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "settlement_id": {
+                  "type": "string",
+                  "description": "Settlement ID"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "tax_summary",
+            "description": "Get tax collected and payable summary (GST, VAT, sales tax)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "tax_type": {
+                  "type": "string",
+                  "enum": [
+                    "gst",
+                    "vat",
+                    "sales_tax",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "platform_fees",
+            "description": "Break down platform fees, commissions, and charges",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "fee_type": {
+                  "type": "string",
+                  "enum": [
+                    "commission",
+                    "fulfillment",
+                    "advertising",
+                    "subscription",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "dispute_status",
+            "description": "Check payment disputes, chargebacks, and resolution status",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "dispute_id": {
+                  "type": "string",
+                  "description": "Dispute ID"
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "open",
+                    "under_review",
+                    "won",
+                    "lost",
+                    "all"
+                  ]
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "delivery_partner_performance",
+            "description": "Compare delivery partner performance on speed, cost, and customer satisfaction",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "partner": {
+                  "type": "string",
+                  "description": "Delivery partner name"
+                },
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "metric": {
+                  "type": "string",
+                  "enum": [
+                    "delivery_time",
+                    "cost_per_order",
+                    "damage_rate",
+                    "rto_rate",
+                    "customer_rating"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "warehouse_utilization",
+            "description": "Check warehouse capacity utilization and storage costs",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "warehouse_id": {
+                  "type": "string",
+                  "description": "Warehouse ID"
+                },
+                "include_forecast": {
+                  "type": "boolean",
+                  "description": "Include projected utilization"
+                }
+              },
+              "required": []
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "sla_compliance",
+            "description": "Check SLA compliance rates for shipping, response time, and quality",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "sla_type": {
+                  "type": "string",
+                  "enum": [
+                    "shipping",
+                    "response_time",
+                    "defect_rate",
+                    "cancellation",
+                    "all"
+                  ]
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "cost_breakdown",
+            "description": "Get comprehensive cost breakdown (COGS, shipping, platform fees, marketing, returns)",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "category": {
+                  "type": "string",
+                  "description": "Filter by product category"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date"
+              ]
+            }
+          }
+        },
+        {
+          "type": "function",
+          "function": {
+            "name": "profit_margin",
+            "description": "Calculate profit margin after all costs at store, category, or product level",
+            "parameters": {
+              "type": "object",
+              "properties": {
+                "start_date": {
+                  "type": "string",
+                  "description": "Start date (YYYY-MM-DD)"
+                },
+                "end_date": {
+                  "type": "string",
+                  "description": "End date (YYYY-MM-DD)"
+                },
+                "level": {
+                  "type": "string",
+                  "enum": [
+                    "store",
+                    "category",
+                    "product"
+                  ]
+                },
+                "product_id": {
+                  "type": "string",
+                  "description": "Product ID (required if level=product)"
+                }
+              },
+              "required": [
+                "start_date",
+                "end_date",
+                "level"
+              ]
+            }
+          }
+        }
+      ],
+      "sample_queries": [
+        "What's my GMV this month?",
+        "Which products are selling the most this week?",
+        "Show me my customer retention rate for the last quarter",
+        "What's my cart abandonment rate?",
+        "How are my delivery partners performing?",
+        "What's my return rate and what are the top reasons?",
+        "Show me revenue by geography at state level for this month",
+        "What's my ad spend ROI across all channels?",
+        "Which products are out of stock and how much revenue am I losing?",
+        "What's my profit margin by category this quarter?"
       ]
     }
   }

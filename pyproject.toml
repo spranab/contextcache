@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "contextcache"
+version = "0.2.0"
+description = "KV cache routing for tool selection — 290x faster TTFT"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [
+    {name = "ContextCache Contributors"},
+]
+
+dependencies = [
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+server = [
+    "torch>=2.1.0",
+    "transformers>=4.40.0",
+    "fastapi>=0.104.0",
+    "uvicorn>=0.24.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "safetensors>=0.4.0",
+    "accelerate>=0.25.0",
+    "httpx>=0.25.0",
+]
+dev = [
+    "pytest>=7.0",
+    "httpx>=0.25.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.setuptools.packages.find]
+include = ["context_cache*"]

@@ -10,6 +10,8 @@ but before KV cache update. We intercept pre-RoPE keys and defer rotation to
 link time, enabling position-independent caching.
 """
 
+from __future__ import annotations
+
 import torch
 from torch import Tensor
 
