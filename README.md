@@ -71,19 +71,25 @@ cd contextcache
 pip install -r requirements.txt
 ```
 
-### One-Command Server Launch
+### One-Command Startup
 
 ```bash
-# Live mode (requires GPU with ~8GB VRAM)
-python scripts/serve/launch.py
+# Demo mode (no GPU needed) — creates venv, installs deps, launches
+./start.sh
 
-# Demo mode (no GPU needed — pre-recorded responses)
-python scripts/serve/launch.py --demo
+# Live mode (requires GPU with ~8GB VRAM)
+./start.sh --live
+
+# Windows
+start.bat              # demo
+start.bat --live       # live
 ```
 
-**Live mode** starts the FastAPI server, loads Qwen3-8B (4-bit NF4) in the background, and opens a browser UI.
+The startup script creates a virtual environment, installs only the required dependencies, and launches the server with a browser UI.
 
-**Demo mode** runs without any GPU or model dependencies, using pre-recorded responses with realistic timing simulation. Ideal for presentations and evaluating the UI.
+**Demo mode** uses pre-recorded responses with realistic timing simulation — no GPU or model needed. Ideal for presentations.
+
+**Live mode** loads Qwen3-8B (4-bit NF4) in the background and runs real inference.
 
 ### Programmatic Usage
 
