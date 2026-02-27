@@ -162,7 +162,7 @@ Pranab Sarkar, 2026
 
 Paper PDF: [paper/main.pdf](paper/main.pdf)
 
-*Zenodo DOI: (to be added after upload)*
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18795189.svg)](https://doi.org/10.5281/zenodo.18795189)
 
 ## Citation
 
@@ -171,7 +171,9 @@ Paper PDF: [paper/main.pdf](paper/main.pdf)
   title={ContextCache: Persistent {KV} Cache with Content-Hash Addressing for Zero-Degradation Tool Schema Caching},
   author={Sarkar, Pranab},
   year={2026},
-  institution={Zenodo}
+  institution={Zenodo},
+  doi={10.5281/zenodo.18795189},
+  url={https://doi.org/10.5281/zenodo.18795189}
 }
 ```
 
