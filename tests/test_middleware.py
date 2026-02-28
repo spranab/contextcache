@@ -175,8 +175,10 @@ class TestMetricsCollector:
         asyncio.run(_test())
 
     def test_unknown_key_returns_empty(self):
-        mc = MetricsCollector()
-        assert mc.get_metrics("nonexistent") == {}
+        async def _test():
+            mc = MetricsCollector()
+            assert mc.get_metrics("nonexistent") == {}
+        asyncio.run(_test())
 
     def test_cache_miss_counted(self):
         async def _test():
