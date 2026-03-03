@@ -114,18 +114,18 @@ def benchmark_one_size(
 
     # Clear previous cache
     model._group_cache.clear()
-    torch.cuda.empty_cache()
-    torch.cuda.synchronize()
+    model._empty_device_cache()
+    model._sync_device()
 
     # --- Phase 1: Compile (first call, cache miss) ---
-    torch.cuda.synchronize()
+    model._sync_device()
     t0 = time.perf_counter()
     _, timings_compile = model.generate_group_cached(
         context_texts=tool_schemas,
         user_query=queries[0],
         max_new_tokens=max_new_tokens,
     )
-    torch.cuda.synchronize()
+    model._sync_device()
     compile_total_ms = (time.perf_counter() - t0) * 1000
 
     # Measure cache size
@@ -153,13 +153,13 @@ def benchmark_one_size(
     hit_prefill = []
     print(f"  Cache-hit pass ({n_queries} queries)...")
     for i, q in enumerate(queries):
-        torch.cuda.synchronize()
+        model._sync_device()
         _, timings = model.generate_group_cached(
             context_texts=tool_schemas,
             user_query=q,
             max_new_tokens=max_new_tokens,
         )
-        torch.cuda.synchronize()
+        model._sync_device()
         assert timings.get("cache_hit", False), f"Expected cache hit on query {i}"
         hit_link.append(timings.get("link_ms", 0))
         hit_prefill.append(timings.get("prefill_query_ms", 0))
@@ -172,13 +172,13 @@ def benchmark_one_size(
     fp_tokens = []
     print(f"  Full-prefill pass ({n_queries} queries)...")
     for i, q in enumerate(queries):
-        torch.cuda.synchronize()
+        model._sync_device()
         _, timings = model.generate_full_prefill(
             context_texts=tool_schemas,
             user_query=q,
             max_new_tokens=max_new_tokens,
         )
-        torch.cuda.synchronize()
+        model._sync_device()
         fp_prefill.append(timings.get("prefill_ms", 0))
         if "prompt_tokens" in timings:
             fp_tokens.append(timings["prompt_tokens"])

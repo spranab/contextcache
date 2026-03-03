@@ -137,7 +137,7 @@ class ModelAdapter(ABC):
 
 
 class QwenAdapter(ModelAdapter):
-    """Adapter for Qwen3 models (Qwen3-8B, Qwen3-4B, etc.)."""
+    """Adapter for Qwen3/Qwen3.5 models (Qwen3-8B, Qwen3.5-0.8B, etc.)."""
 
     def build_full_prompt(self, tool_schemas, user_query, system_prompt):
         tools = self._parse_tools(tool_schemas)
@@ -371,6 +371,7 @@ class MistralAdapter(ModelAdapter):
 ADAPTER_REGISTRY: dict[str, type[ModelAdapter]] = {
     "qwen": QwenAdapter,
     "qwen3": QwenAdapter,
+    "qwen3.5": QwenAdapter,
     "llama": LlamaAdapter,
     "mistral": MistralAdapter,
     "mixtral": MistralAdapter,

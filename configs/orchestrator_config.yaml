@@ -1,0 +1,38 @@
+# Confidence-Gated Route-First Orchestrator Configuration
+
+router:
+  # Path to the GGUF model file
+  # 0.8B: faster (~400ms), 80-85% accuracy
+  # 2B:   balanced (~550ms), 95-100% accuracy  (recommended)
+  # 4B:   slower (~800ms), highest accuracy
+  # Download: huggingface-cli download unsloth/Qwen3.5-2B-GGUF Qwen3.5-2B-Q4_K_M.gguf
+  model_path: "~/.cache/huggingface/hub/models--unsloth--Qwen3.5-2B-GGUF/snapshots/f6d5376be1edb4d416d56da11e5397a961aca8ae/Qwen3.5-2B-Q4_K_M.gguf"
+  n_ctx: 16384          # Context window (tokens)
+  n_threads: 4          # CPU threads for inference
+  n_batch: 2048         # Batch size for prefill
+  max_domains: 20       # Max cached domains (LRU eviction)
+  # system_prompt: null # Uses default (verb-based routing prompt)
+
+orchestrator:
+  high_confidence_threshold: 0.7    # >= this: execute tool directly
+  low_confidence_threshold: 0.2     # < this: skip tool, conversational response
+  max_tool_calls: 10                # Safety limit per request
+  timeout_s: 120.0                  # Overall timeout per request
+  top_k_low_confidence: 5           # Candidates for low-confidence path
+  synthesis_temperature: 0.3        # Slight creativity in final response
+  max_synthesis_tokens: 1024        # Max tokens for final response
+  enable_thinking: false            # LLM thinking/reasoning mode (slower but deeper)
+
+# Pre-register domains at startup (optional)
+# Each domain triggers cold prefill (~44-106s for 50 tools)
+preload_domains: []
+  # - domain_id: retail
+  #   tools_path: scripts/cache/retail_tools.json
+  #   system_prompt: null
+
+# Server-side LLM credentials (alternative: use CONTEXTCACHE_LLM_* env vars)
+# llm_config_path: configs/llm_config.json
+
+# Server binding
+host: "0.0.0.0"
+port: 8422

@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ContextCache Orchestrator</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root {
+      --cc-green: #4ade80; --cc-red: #f87171; --cc-yellow: #facc15;
+      --cc-blue: #60a5fa; --cc-dim: #6b7280; --cc-purple: #a78bfa;
+      --cc-orange: #fb923c;
+    }
+    body { margin: 0; padding: 0; font-size: 0.9rem; }
+
+    /* Loading overlay */
+    #loading-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(17,24,39,0.95);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      transition: opacity 0.5s;
+    }
+    #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .spinner { width: 48px; height: 48px; border: 4px solid var(--cc-dim); border-top-color: var(--cc-blue); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #loading-overlay p { margin-top: 1rem; color: var(--cc-dim); }
+
+    /* Header */
+    header.app-header {
+      padding: 0.75rem 1.5rem; border-bottom: 1px solid var(--pico-muted-border-color);
+      display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+    }
+    header h1 { margin: 0; font-size: 1.2rem; flex-shrink: 0; }
+    header h1 span { font-weight: 400; color: var(--cc-dim); }
+    .status-bar { display: flex; gap: 1.25rem; align-items: center; font-size: 0.8rem; color: var(--cc-dim); flex-wrap: wrap; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+    .status-dot.green { background: var(--cc-green); }
+    .status-dot.red { background: var(--cc-red); }
+    .status-dot.yellow { background: var(--cc-yellow); }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex; gap: 0; border-bottom: 2px solid var(--pico-muted-border-color);
+      padding: 0 1.5rem; background: var(--pico-card-background-color);
+    }
+    .tab-bar button {
+      padding: 0.6rem 1.25rem; border: none; background: none;
+      color: var(--cc-dim); cursor: pointer; font-size: 0.85rem; font-weight: 600;
+      border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.2s;
+    }
+    .tab-bar button:hover { color: var(--cc-blue); }
+    .tab-bar button.active { color: var(--cc-blue); border-bottom-color: var(--cc-blue); }
+
+    .tab-content { display: none; padding: 1.5rem; }
+    .tab-content.active { display: block; }
+
+    /* Panels */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    @media (max-width: 900px) { .grid-2 { grid-template-columns: 1fr; } }
+    .panel {
+      background: var(--pico-card-background-color);
+      border: 1px solid var(--pico-muted-border-color);
+      border-radius: 8px; padding: 1.25rem;
+    }
+    .panel h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+
+    /* Forms */
+    .form-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; align-items: center; }
+    .form-row label { font-size: 0.8rem; min-width: 80px; color: var(--cc-dim); }
+    .form-row input, .form-row select { flex: 1; margin: 0; padding: 0.4rem 0.6rem; font-size: 0.85rem; }
+    .form-row button { margin: 0; white-space: nowrap; }
+    textarea.code { font-family: monospace; font-size: 0.8rem; resize: vertical; min-height: 160px; }
+    .btn-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
+    .btn-row button { flex: 1; }
+
+    /* Results */
+    .result-box {
+      margin-top: 0.75rem; padding: 0.75rem; border-radius: 6px; font-size: 0.85rem;
+      background: var(--pico-card-sectioning-background-color); display: none;
+      white-space: pre-wrap; overflow-x: auto; max-height: 400px; overflow-y: auto;
+    }
+    .result-box.show { display: block; }
+    .result-box.error { background: rgba(248,113,113,0.1); color: var(--cc-red); }
+
+    /* Badges */
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    }
+    .badge.high { background: var(--cc-green); color: #000; }
+    .badge.low { background: var(--cc-yellow); color: #000; }
+    .badge.no-tool { background: var(--cc-red); color: #fff; }
+    .badge.hit { background: var(--cc-green); color: #000; }
+
+    /* Route result card */
+    .route-card {
+      background: var(--pico-card-sectioning-background-color);
+      border-radius: 8px; padding: 1rem; margin-top: 0.75rem;
+    }
+    .route-card .tool-name { font-size: 1.1rem; font-weight: 700; color: var(--cc-green); }
+    .route-card .confidence { font-size: 0.85rem; margin-top: 0.25rem; }
+    .candidates { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .candidate {
+      padding: 3px 10px; border-radius: 4px; font-size: 0.75rem;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--pico-muted-border-color);
+    }
+    .candidate.top { border-color: var(--cc-green); color: var(--cc-green); }
+    .timings { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.5rem; font-size: 0.8rem; color: var(--cc-dim); }
+    .timings span strong { color: var(--pico-color); }
+
+    /* Full pipeline result */
+    .pipeline-result { margin-top: 0.75rem; }
+    .pipeline-step {
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0;
+      border-bottom: 1px solid var(--pico-muted-border-color); font-size: 0.85rem;
+    }
+    .pipeline-step .step-label { min-width: 100px; color: var(--cc-dim); font-weight: 600; }
+    .pipeline-step .step-value { flex: 1; }
+    .pipeline-step .step-time { color: var(--cc-orange); font-weight: 600; }
+
+    .response-text {
+      margin-top: 0.75rem; padding: 1rem; border-radius: 6px;
+      background: var(--pico-card-sectioning-background-color);
+      line-height: 1.5; white-space: pre-wrap;
+    }
+
+    /* Thinking panel */
+    .thinking-panel {
+      margin-top: 0.75rem; border: 1px solid var(--cc-purple);
+      border-radius: 6px; overflow: hidden;
+    }
+    .thinking-header {
+      padding: 0.5rem 0.75rem; background: rgba(167,139,250,0.1);
+      font-size: 0.8rem; font-weight: 600; color: var(--cc-purple);
+      cursor: pointer; display: flex; align-items: center; gap: 0.5rem;
+    }
+    .thinking-body {
+      padding: 0.75rem; font-size: 0.8rem; color: var(--cc-dim);
+      max-height: 300px; overflow-y: auto; white-space: pre-wrap; display: none;
+    }
+    .thinking-body.open { display: block; }
+
+    /* Domain list */
+    .domain-list { list-style: none; padding: 0; margin: 0; }
+    .domain-item {
+      display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem;
+      border-radius: 6px; margin-bottom: 0.5rem;
+      background: var(--pico-card-sectioning-background-color);
+    }
+    .domain-item .name { font-weight: 700; flex: 1; }
+    .domain-item .info { font-size: 0.8rem; color: var(--cc-dim); }
+    .domain-item button { padding: 2px 10px; font-size: 0.75rem; margin: 0; }
+
+    /* Toggle */
+    .toggle-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+    .toggle-row label { font-size: 0.85rem; cursor: pointer; }
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px; background: var(--cc-dim);
+      border-radius: 12px; cursor: pointer; transition: background 0.2s;
+    }
+    .toggle-switch.on { background: var(--cc-purple); }
+    .toggle-switch::after {
+      content: ''; position: absolute; top: 2px; left: 2px;
+      width: 20px; height: 20px; background: #fff; border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle-switch.on::after { transform: translateX(20px); }
+
+    /* History */
+    .history-item {
+      padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 0.5rem;
+      background: var(--pico-card-sectioning-background-color); cursor: pointer;
+      transition: background 0.2s; font-size: 0.85rem;
+    }
+    .history-item:hover { background: rgba(255,255,255,0.08); }
+    .history-item .query-text { font-weight: 600; }
+    .history-item .meta { font-size: 0.75rem; color: var(--cc-dim); margin-top: 0.2rem; }
+  </style>
+</head>
+<body>
+
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p id="loading-text">Connecting to server...</p>
+</div>
+
+<header class="app-header">
+  <h1>ContextCache <span>Orchestrator</span></h1>
+  <div class="status-bar">
+    <span><span class="status-dot" id="health-dot"></span><span id="health-text">connecting...</span></span>
+    <span id="status-domains"></span>
+  </div>
+</header>
+
+<div class="tab-bar">
+  <button class="active" onclick="switchTab('domains')">Domains</button>
+  <button onclick="switchTab('route')">Route</button>
+  <button onclick="switchTab('pipeline')">Pipeline</button>
+  <button onclick="switchTab('history')">History</button>
+</div>
+
+<!-- DOMAINS TAB -->
+<div id="tab-domains" class="tab-content active">
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Register Tools</h3>
+      <div class="form-row">
+        <label>Domain ID</label>
+        <input type="text" id="reg-domain-id" value="retail" placeholder="e.g., retail, finance">
+      </div>
+      <textarea id="reg-tools" class="code" placeholder='Paste tool schemas in OpenAI format:
+[
+  {
+    "type": "function",
+    "function": {
+      "name": "check_inventory",
+      "description": "Check product inventory",
+      "parameters": { ... }
+    }
+  }
+]'></textarea>
+      <div class="btn-row">
+        <button onclick="registerDomain()">Register</button>
+        <button class="secondary" onclick="loadSampleTools()">Load Sample</button>
+      </div>
+      <div id="reg-result" class="result-box"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Registered Domains</h3>
+      <ul class="domain-list" id="domain-list">
+        <li style="color:var(--cc-dim); font-size:0.85rem;">No domains registered yet.</li>
+      </ul>
+      <button class="secondary" style="margin-top:0.75rem; width:100%;" onclick="refreshDomains()">Refresh</button>
+    </div>
+  </div>
+</div>
+
+<!-- ROUTE TAB -->
+<div id="tab-route" class="tab-content">
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Route Query</h3>
+      <p style="font-size:0.8rem; color:var(--cc-dim); margin-top:0;">
+        Tool detection only. No LLM, ~500ms on CPU.
+      </p>
+      <div class="form-row">
+        <label>Domain</label>
+        <select id="route-domain"></select>
+      </div>
+      <div class="form-row">
+        <input type="text" id="route-query" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')sendRoute()">
+        <button onclick="sendRoute()">Route</button>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-switch" id="toggle-schema" onclick="toggleSwitch(this)"></div>
+        <label onclick="toggleSwitch(document.getElementById('toggle-schema'))">Include tool schema</label>
+      </div>
+      <div id="route-result"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Batch Test</h3>
+      <p style="font-size:0.8rem; color:var(--cc-dim); margin-top:0;">
+        Test multiple queries, see routing accuracy.
+      </p>
+      <div class="form-row">
+        <label>Domain</label>
+        <select id="batch-domain"></select>
+      </div>
+      <textarea id="batch-queries" class="code" style="min-height:120px" placeholder="One query per line:
+Do we have iPhone 16 Pro in stock?
+What's the status of order ORD-2024-1234?
+Apply a 15% discount to order ORD-5678"></textarea>
+      <div class="btn-row">
+        <button onclick="sendBatch()">Run Batch</button>
+        <button class="secondary" onclick="loadSampleQueries()">Sample Queries</button>
+      </div>
+      <div id="batch-result" class="result-box"></div>
+    </div>
+  </div>
+</div>
+
+<!-- PIPELINE TAB -->
+<div id="tab-pipeline" class="tab-content">
+  <div class="grid-2">
+    <div class="panel">
+      <h3>Full Pipeline Query</h3>
+      <p style="font-size:0.8rem; color:var(--cc-dim); margin-top:0;">
+        Route + param extraction + execute + LLM synthesis.
+      </p>
+      <div class="form-row">
+        <label>Domain</label>
+        <select id="pipe-domain"></select>
+      </div>
+      <div class="form-row">
+        <label>LLM URL</label>
+        <input type="text" id="pipe-llm-url" value="http://localhost:11434/v1/chat/completions">
+      </div>
+      <div class="form-row">
+        <label>LLM Model</label>
+        <input type="text" id="pipe-llm-model" value="qwen3.5:9b">
+      </div>
+      <div class="form-row">
+        <input type="text" id="pipe-query" placeholder="Ask a question..." onkeydown="if(event.key==='Enter')sendPipeline()">
+        <button onclick="sendPipeline()">Send</button>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-switch" id="toggle-thinking" onclick="toggleSwitch(this)"></div>
+        <label onclick="toggleSwitch(document.getElementById('toggle-thinking'))">Enable thinking (slower, deeper reasoning)</label>
+      </div>
+    </div>
+
+    <div class="panel" id="pipe-result-panel">
+      <h3>Result</h3>
+      <div id="pipe-result">
+        <p style="color:var(--cc-dim); font-size:0.85rem;">Send a query to see results.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div id="tab-history" class="tab-content">
+  <div class="panel" style="max-width:800px;">
+    <h3>Query History</h3>
+    <div id="history-list">
+      <p style="color:var(--cc-dim); font-size:0.85rem;">No queries yet.</p>
+    </div>
+    <button class="secondary" style="margin-top:0.75rem;" onclick="clearHistory()">Clear History</button>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin;
+let history = JSON.parse(sessionStorage.getItem('orch_history') || '[]');
+
+// --- Tabs ---
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-bar button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+  if (name === 'route' || name === 'pipeline') refreshDomainSelects();
+  if (name === 'history') renderHistory();
+}
+
+function toggleSwitch(el) { el.classList.toggle('on'); }
+
+// --- Health check ---
+function startHealthPolling() {
+  const overlay = document.getElementById('loading-overlay');
+  const text = document.getElementById('loading-text');
+  let dots = 0;
+  const iv = setInterval(async () => {
+    dots = (dots + 1) % 4;
+    try {
+      const r = await fetch(API + '/health');
+      const data = await r.json();
+      if (data.router_loaded || data.status === 'healthy') {
+        clearInterval(iv);
+        overlay.classList.add('hidden');
+        setTimeout(() => overlay.style.display = 'none', 500);
+        initUI();
+        return;
+      }
+      text.textContent = 'Loading model' + '.'.repeat(dots);
+    } catch (e) {
+      text.textContent = 'Connecting to server' + '.'.repeat(dots);
+    }
+  }, 1500);
+}
+
+async function initUI() {
+  refreshStatus();
+  refreshDomains();
+  setInterval(refreshStatus, 15000);
+}
+
+async function refreshStatus() {
+  const dot = document.getElementById('health-dot');
+  const htxt = document.getElementById('health-text');
+  try {
+    const r = await fetch(API + '/health');
+    const h = await r.json();
+    if (h.status === 'healthy') {
+      dot.className = 'status-dot green'; htxt.textContent = 'healthy';
+      document.getElementById('status-domains').textContent = h.num_domains + ' domain(s)';
+    } else {
+      dot.className = 'status-dot yellow'; htxt.textContent = h.status;
+    }
+  } catch (e) {
+    dot.className = 'status-dot red'; htxt.textContent = 'disconnected';
+  }
+}
+
+// --- Domains ---
+async function refreshDomains() {
+  try {
+    const r = await fetch(API + '/domains');
+    const data = await r.json();
+    const list = document.getElementById('domain-list');
+    if (!data.domains || data.domains.length === 0) {
+      list.innerHTML = '<li style="color:var(--cc-dim); font-size:0.85rem;">No domains registered yet.</li>';
+      return;
+    }
+    list.innerHTML = data.domains.map(d => `
+      <li class="domain-item">
+        <span class="name">${d.domain_id}</span>
+        <span class="info">${d.num_tools} tools | ${d.state_size_mb} MB | ${d.query_count} queries</span>
+        <button class="secondary outline" onclick="removeDomain('${d.domain_id}')">Remove</button>
+      </li>
+    `).join('');
+    refreshDomainSelects();
+  } catch (e) { console.error('Failed to refresh domains:', e); }
+}
+
+function refreshDomainSelects() {
+  const selects = ['route-domain', 'batch-domain', 'pipe-domain'];
+  const list = document.getElementById('domain-list');
+  const domains = [...list.querySelectorAll('.domain-item .name')].map(el => el.textContent);
+
+  selects.forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = domains.length === 0
+      ? '<option value="">No domains</option>'
+      : domains.map(d => `<option value="${d}">${d}</option>`).join('');
+    if (prev && domains.includes(prev)) sel.value = prev;
+  });
+}
+
+async function registerDomain() {
+  const domainId = document.getElementById('reg-domain-id').value.trim();
+  const toolsText = document.getElementById('reg-tools').value.trim();
+  const result = document.getElementById('reg-result');
+
+  if (!domainId) { showResult(result, 'Enter a domain ID.', true); return; }
+  if (!toolsText) { showResult(result, 'Paste tool schemas.', true); return; }
+
+  let tools;
+  try {
+    tools = JSON.parse(toolsText);
+    if (!Array.isArray(tools)) tools = [tools];
+  } catch (e) { showResult(result, 'Invalid JSON: ' + e.message, true); return; }
+
+  showResult(result, 'Registering... (prefilling KV cache, may take a while for large tool sets)');
+  try {
+    const r = await fetch(API + '/domains/' + encodeURIComponent(domainId) + '/tools', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tools }),
+    });
+    const data = await r.json();
+    if (r.ok) {
+      showResult(result, `Registered "${domainId}": ${data.num_tools} tools, ${data.prefix_tokens} prefix tokens, ${data.state_size_mb} MB state, ${Math.round(data.prefill_ms)}ms prefill`);
+      refreshDomains();
+    } else {
+      showResult(result, 'Error: ' + (data.detail || JSON.stringify(data)), true);
+    }
+  } catch (e) { showResult(result, 'Network error: ' + e.message, true); }
+}
+
+async function removeDomain(domainId) {
+  try {
+    await fetch(API + '/domains/' + encodeURIComponent(domainId), { method: 'DELETE' });
+    refreshDomains();
+    refreshStatus();
+  } catch (e) { console.error(e); }
+}
+
+function loadSampleTools() {
+  document.getElementById('reg-tools').value = JSON.stringify([
+    {"type":"function","function":{"name":"check_inventory","description":"Check product inventory by SKU or name","parameters":{"type":"object","properties":{"product":{"type":"string","description":"Product name or SKU"},"warehouse":{"type":"string","description":"Warehouse location"}},"required":["product"]}}},
+    {"type":"function","function":{"name":"get_order_status","description":"Get status of a customer order by ID","parameters":{"type":"object","properties":{"order_id":{"type":"string","description":"The order ID"}},"required":["order_id"]}}},
+    {"type":"function","function":{"name":"apply_discount","description":"Apply a percentage discount to an order","parameters":{"type":"object","properties":{"order_id":{"type":"string","description":"Order ID"},"discount_percent":{"type":"number","description":"Discount percentage"}},"required":["order_id"]}}},
+    {"type":"function","function":{"name":"process_return","description":"Process a product return or exchange","parameters":{"type":"object","properties":{"order_id":{"type":"string","description":"Original order ID"},"reason":{"type":"string","description":"Reason for return"}},"required":["order_id","reason"]}}},
+    {"type":"function","function":{"name":"search_products","description":"Search products by keyword or price range","parameters":{"type":"object","properties":{"query":{"type":"string","description":"Search query"},"max_price":{"type":"number","description":"Max price"}},"required":["query"]}}},
+  ], null, 2);
+}
+
+// --- Route ---
+async function sendRoute() {
+  const domain = document.getElementById('route-domain').value;
+  const query = document.getElementById('route-query').value.trim();
+  const includeSchema = document.getElementById('toggle-schema').classList.contains('on');
+  const resultEl = document.getElementById('route-result');
+
+  if (!domain) { resultEl.innerHTML = '<p style="color:var(--cc-red)">Select a domain first.</p>'; return; }
+  if (!query) return;
+
+  resultEl.innerHTML = '<p style="color:var(--cc-dim)">Routing...</p>';
+
+  try {
+    const t0 = performance.now();
+    const r = await fetch(API + '/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain_id: domain, query, include_schema: includeSchema }),
+    });
+    const roundTrip = Math.round(performance.now() - t0);
+    const data = await r.json();
+
+    if (!r.ok) { resultEl.innerHTML = `<p style="color:var(--cc-red)">Error: ${data.detail}</p>`; return; }
+
+    const confLevel = data.confidence >= 0.7 ? 'high' : data.confidence >= 0.2 ? 'low' : 'no-tool';
+    const candidates = (data.top_candidates || []).map((c, i) =>
+      `<span class="candidate ${i === 0 ? 'top' : ''}">${c.name} (${(c.probability * 100).toFixed(1)}%)</span>`
+    ).join('');
+
+    let schemaHtml = '';
+    if (data.tool_schema) {
+      schemaHtml = `<details style="margin-top:0.75rem;">
+        <summary style="font-size:0.8rem; cursor:pointer; color:var(--cc-blue);">Tool Schema</summary>
+        <pre style="font-size:0.75rem; margin-top:0.5rem; overflow-x:auto;">${JSON.stringify(data.tool_schema, null, 2)}</pre>
+      </details>`;
+    }
+
+    resultEl.innerHTML = `
+      <div class="route-card">
+        <div class="tool-name">${data.tool_name}</div>
+        <div class="confidence">
+          <span class="badge ${confLevel}">${confLevel}</span>
+          Confidence: ${(data.confidence * 100).toFixed(1)}%
+        </div>
+        <div class="candidates">${candidates}</div>
+        <div class="timings">
+          <span>Route: <strong>${Math.round(data.timings.route_ms)}ms</strong></span>
+          <span>Restore: <strong>${Math.round(data.timings.restore_ms)}ms</strong></span>
+          <span>Prefill: <strong>${Math.round(data.timings.prefill_ms)}ms</strong></span>
+          <span>Gen: <strong>${Math.round(data.timings.gen_ms)}ms</strong></span>
+          <span>Round-trip: <strong>${roundTrip}ms</strong></span>
+        </div>
+        ${schemaHtml}
+      </div>`;
+
+    addHistory({ type: 'route', domain, query, tool: data.tool_name, confidence: data.confidence, ms: Math.round(data.timings.route_ms) });
+  } catch (e) { resultEl.innerHTML = `<p style="color:var(--cc-red)">Network error: ${e.message}</p>`; }
+}
+
+// --- Batch ---
+async function sendBatch() {
+  const domain = document.getElementById('batch-domain').value;
+  const text = document.getElementById('batch-queries').value.trim();
+  const resultEl = document.getElementById('batch-result');
+  if (!domain || !text) { showResult(resultEl, 'Select a domain and enter queries.', true); return; }
+
+  const queries = text.split('\n').map(q => q.trim()).filter(q => q);
+  showResult(resultEl, `Running ${queries.length} queries...`);
+
+  const results = [];
+  for (const q of queries) {
+    try {
+      const r = await fetch(API + '/route', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ domain_id: domain, query: q }),
+      });
+      const data = await r.json();
+      results.push({ query: q, tool: data.tool_name, confidence: data.confidence, ms: Math.round(data.timings.route_ms) });
+    } catch (e) {
+      results.push({ query: q, tool: 'ERROR', confidence: 0, ms: 0 });
+    }
+  }
+
+  const avgMs = Math.round(results.reduce((s, r) => s + r.ms, 0) / results.length);
+  const avgConf = (results.reduce((s, r) => s + r.confidence, 0) / results.length * 100).toFixed(1);
+  let output = `Batch: ${results.length} queries | Avg: ${avgMs}ms | Avg confidence: ${avgConf}%\n${'─'.repeat(60)}\n`;
+  results.forEach(r => {
+    const conf = (r.confidence * 100).toFixed(1).padStart(5);
+    output += `${r.ms.toString().padStart(4)}ms | ${conf}% | ${r.tool.padEnd(20)} | ${r.query}\n`;
+  });
+  showResult(resultEl, output);
+}
+
+function loadSampleQueries() {
+  document.getElementById('batch-queries').value =
+    "Do we have iPhone 16 Pro in stock?\n" +
+    "What's the status of order ORD-2024-1234?\n" +
+    "Apply a 15% discount to order ORD-5678\n" +
+    "Customer wants to return order ORD-9999 because defective\n" +
+    "Search for wireless headphones under $100";
+}
+
+// --- Pipeline ---
+async function sendPipeline() {
+  const domain = document.getElementById('pipe-domain').value;
+  const query = document.getElementById('pipe-query').value.trim();
+  const llmUrl = document.getElementById('pipe-llm-url').value.trim();
+  const llmModel = document.getElementById('pipe-llm-model').value.trim();
+  const thinking = document.getElementById('toggle-thinking').classList.contains('on');
+  const resultEl = document.getElementById('pipe-result');
+
+  if (!domain) { resultEl.innerHTML = '<p style="color:var(--cc-red)">Select a domain.</p>'; return; }
+  if (!query) return;
+
+  resultEl.innerHTML = '<p style="color:var(--cc-dim)">Processing...' + (thinking ? ' (thinking enabled, may take longer)' : '') + '</p>';
+
+  try {
+    const t0 = performance.now();
+    const r = await fetch(API + '/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        domain_id: domain,
+        query,
+        tool_executor: 'mock',
+        llm_api_key: 'not-needed',
+        llm_provider: 'openai',
+        llm_model: llmModel || undefined,
+        llm_base_url: llmUrl || undefined,
+        enable_thinking: thinking,
+      }),
+    });
+    const roundTrip = Math.round(performance.now() - t0);
+    const data = await r.json();
+
+    if (!r.ok) {
+      resultEl.innerHTML = `<p style="color:var(--cc-red)">Error: ${data.detail || JSON.stringify(data)}</p>`;
+      return;
+    }
+
+    const tc = data.tool_calls?.[0];
+    const t = data.timings;
+    const confLevel = data.confidence >= 0.7 ? 'high' : data.confidence >= 0.2 ? 'low' : 'no-tool';
+
+    let thinkingHtml = '';
+    if (data.thinking) {
+      thinkingHtml = `
+        <div class="thinking-panel">
+          <div class="thinking-header" onclick="this.nextElementSibling.classList.toggle('open')">
+            Thinking trace (${data.thinking.length} chars) — click to expand
+          </div>
+          <div class="thinking-body">${escapeHtml(data.thinking)}</div>
+        </div>`;
+    }
+
+    resultEl.innerHTML = `
+      <div class="pipeline-result">
+        <div class="pipeline-step">
+          <span class="step-label">Tool</span>
+          <span class="step-value"><strong style="color:var(--cc-green)">${tc?.tool_name || 'none'}</strong>
+            <span class="badge ${confLevel}">${confLevel}</span> ${(data.confidence * 100).toFixed(1)}%</span>
+          <span class="step-time">${Math.round(t.route_ms || 0)}ms</span>
+        </div>
+        <div class="pipeline-step">
+          <span class="step-label">Params</span>
+          <span class="step-value"><code>${tc ? JSON.stringify(tc.arguments) : '{}'}</code></span>
+          <span class="step-time">${Math.round(t.param_extraction_ms || 0)}ms</span>
+        </div>
+        <div class="pipeline-step">
+          <span class="step-label">Execute</span>
+          <span class="step-value"><span class="badge hit">OK</span></span>
+          <span class="step-time">${Math.round(t.execute_ms || 0)}ms</span>
+        </div>
+        <div class="pipeline-step">
+          <span class="step-label">Synthesis</span>
+          <span class="step-value">${thinking ? 'thinking enabled' : 'direct'}</span>
+          <span class="step-time">${Math.round(t.synthesis_ms || 0)}ms</span>
+        </div>
+        <div class="pipeline-step" style="border-bottom:2px solid var(--cc-blue);">
+          <span class="step-label" style="color:var(--cc-blue);">Total</span>
+          <span class="step-value"></span>
+          <span class="step-time" style="color:var(--cc-blue); font-size:0.95rem;">${Math.round(t.total_ms || 0)}ms</span>
+        </div>
+      </div>
+      <div class="response-text">${escapeHtml(data.final_response)}</div>
+      ${thinkingHtml}`;
+
+    addHistory({
+      type: 'pipeline', domain, query, tool: tc?.tool_name,
+      confidence: data.confidence, ms: Math.round(t.total_ms || 0),
+      thinking: !!data.thinking,
+    });
+  } catch (e) {
+    resultEl.innerHTML = `<p style="color:var(--cc-red)">Network error: ${e.message}</p>`;
+  }
+}
+
+// --- History ---
+function addHistory(entry) {
+  entry.timestamp = new Date().toLocaleTimeString();
+  history.unshift(entry);
+  if (history.length > 50) history.pop();
+  sessionStorage.setItem('orch_history', JSON.stringify(history));
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (history.length === 0) {
+    list.innerHTML = '<p style="color:var(--cc-dim); font-size:0.85rem;">No queries yet.</p>';
+    return;
+  }
+  list.innerHTML = history.map(h => `
+    <div class="history-item">
+      <div class="query-text">${escapeHtml(h.query)}</div>
+      <div class="meta">
+        <span class="badge ${h.type === 'route' ? 'hit' : ''}" style="font-size:0.65rem;">${h.type}</span>
+        ${h.tool || ''} | ${(h.confidence * 100).toFixed(0)}% | ${h.ms}ms
+        ${h.thinking ? '| thinking' : ''} | ${h.timestamp}
+      </div>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  history = [];
+  sessionStorage.removeItem('orch_history');
+  renderHistory();
+}
+
+// --- Helpers ---
+function showResult(el, text, isError) {
+  el.textContent = text;
+  el.className = 'result-box show' + (isError ? ' error' : '');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+// --- Init ---
+startHealthPolling();
+</script>
+</body>
+</html>

@@ -22,7 +22,16 @@ from context_cache.llm_adapter import (
     get_llm_adapter,
 )
 from context_cache.llm_config import LLMConfig, LLMConfigStore
+from context_cache.orchestrator import (
+    CallableExecutor,
+    MockExecutor,
+    Orchestrator,
+    OrchestratorConfig,
+    OrchestratorResult,
+    ToolExecutor,
+)
 from context_cache.rope_utils import apply_rope, build_rope_cache, reverse_rope
+from context_cache.tool_router import RouteResult, ToolRouter
 
 __all__ = [
     "ContextCacheClient",
@@ -39,4 +48,13 @@ __all__ = [
     "build_rope_cache",
     "apply_rope",
     "reverse_rope",
+    # Orchestrator
+    "ToolRouter",
+    "RouteResult",
+    "Orchestrator",
+    "OrchestratorConfig",
+    "OrchestratorResult",
+    "ToolExecutor",
+    "MockExecutor",
+    "CallableExecutor",
 ]

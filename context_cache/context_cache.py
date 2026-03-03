@@ -124,10 +124,21 @@ class ContextCacheModel:
             return torch.device("mps")
         return torch.device("cpu")
 
+    def _sync_device(self):
+        """Synchronize device if CUDA. No-op on CPU/MPS."""
+        if self.device.type == "cuda":
+            torch.cuda.synchronize()
+
+    def _empty_device_cache(self):
+        """Clear device cache if CUDA. No-op on CPU/MPS."""
+        if self.device.type == "cuda":
+            torch.cuda.empty_cache()
+
     def _load_model(self) -> AutoModelForCausalLM:
         """Load model with quantization on CUDA, or fp16/fp32 on MPS/CPU."""
         cfg = self.config.model
         is_cuda = self.device.type == "cuda"
+        is_cpu = self.device.type == "cpu"
 
         quant_config = None
         if cfg.load_in_4bit and is_cuda:
@@ -142,10 +153,16 @@ class ContextCacheModel:
             )
         elif cfg.load_in_4bit and not is_cuda:
             print(f"  Note: BitsAndBytes 4-bit quantization requires CUDA. "
-                  f"Loading in float16 on {self.device} instead.")
+                  f"Loading in {'float32' if is_cpu else 'float16'} on {self.device} instead.")
 
-        # MPS doesn't support bfloat16; use float16
-        torch_dtype = torch.float16 if self.device.type == "mps" else torch.bfloat16
+        # MPS doesn't support bfloat16; CPU may not support float16 natively
+        if self.device.type == "mps":
+            torch_dtype = torch.float16
+        elif is_cpu:
+            # float32 is safest for CPU; bfloat16 works on modern x86 with AVX-512
+            torch_dtype = torch.float32 if cfg.bnb_4bit_compute_dtype == "float32" else torch.bfloat16
+        else:
+            torch_dtype = torch.bfloat16
 
         model = AutoModelForCausalLM.from_pretrained(
             cfg.model_name,
