@@ -201,6 +201,31 @@ pytest tests/ -v
 
 ---
 
+## Choosing Your Setup: GPU vs CPU
+
+ContextCache offers two inference backends. Both cache tool schemas as KV states for fast routing — the difference is the model runtime and hardware requirements.
+
+| | GPU Context Cache | CPU Orchestrator |
+|--|-------------------|------------------|
+| **Server** | `serve_context_cache.py` (port 8421) | `serve_orchestrator.py` (port 8422) |
+| **Runtime** | PyTorch + transformers | llama.cpp (ctypes) |
+| **Model** | Qwen3-8B, 4-bit NF4 | Qwen3.5-2B, 4-bit GGUF |
+| **Hardware** | NVIDIA GPU (~8GB VRAM) | Any CPU (4+ threads) |
+| **Route latency** | ~200ms (50 tools) | ~550ms (50 tools) |
+| **Speedup** | 29.2x over full prefill | ~10x over cold prefill |
+| **Cache storage** | Disk (SHA-256 content-addressed) | In-memory (per-domain) |
+| **Persistence** | Survives restarts (.pt files) | Lost on restart (use preload_domains) |
+| **Param extraction** | Built-in (same model) | External LLM (Ollama/Claude/OpenAI) |
+| **Quality (TSA)** | 0.850 (zero degradation) | 0.95-1.00 accuracy |
+
+**Choose GPU** if you have a CUDA GPU, need the fastest routing (~200ms), want persistent disk caching across restarts, or need the full NoPE RoPE research pipeline.
+
+**Choose CPU** if you don't have a GPU, want a simpler setup, are OK with ~550ms routing, or prefer using an external LLM (Claude/OpenAI) for synthesis instead of the local model.
+
+Both systems use the same tool schema format (OpenAI function-calling) and can run side-by-side on different ports.
+
+---
+
 ## CPU Orchestrator (No GPU Required)
 
 The orchestrator is a standalone service that uses a small local model (Qwen3.5-2B, 4-bit GGUF) for fast tool routing on CPU, with an external LLM (Ollama, Claude, OpenAI) for parameter extraction and response synthesis. Two products from one server:
