@@ -683,6 +683,40 @@ python examples/retail_assistant.py --demo
 python examples/fastapi_integration.py
 ```
 
+### Supported LLM Providers
+
+The orchestrator's full pipeline needs an external LLM for parameter extraction and response synthesis. Any provider that speaks the OpenAI Chat Completions API works out of the box via `base_url`:
+
+| Provider | `llm_provider` | `llm_base_url` | `llm_api_key` | `llm_model` |
+|----------|---------------|-----------------|---------------|-------------|
+| **Ollama** (local) | `openai` | `http://localhost:11434/v1` | `ollama` | `qwen3.5:4b` |
+| **OpenAI** | `openai` | *(default)* | `sk-...` | `gpt-4o` |
+| **Claude** | `claude` | *(default)* | `sk-ant-...` | `claude-sonnet-4-20250514` |
+| **xAI (Grok)** | `openai` | `https://api.x.ai/v1` | `xai-...` | `grok-3` |
+| **DeepSeek** | `openai` | `https://api.deepseek.com/v1` | `sk-...` | `deepseek-chat` |
+| **Groq** | `openai` | `https://api.groq.com/openai/v1` | `gsk_...` | `llama-3.3-70b-versatile` |
+| **Together AI** | `openai` | `https://api.together.xyz/v1` | `tog-...` | `meta-llama/Llama-3-70b-chat-hf` |
+| **Fireworks** | `openai` | `https://api.fireworks.ai/inference/v1` | `fw_...` | `accounts/fireworks/models/llama-v3p1-70b-instruct` |
+| **Azure OpenAI** | `openai` | `https://YOUR.openai.azure.com/openai/deployments/YOUR-DEPLOYMENT/chat/completions?api-version=2024-02-01` | `your-key` | `gpt-4o` |
+| **vLLM** (self-hosted) | `openai` | `http://localhost:8000/v1` | `token` | `your-model` |
+
+**The pattern:** anything OpenAI-compatible uses `llm_provider: "openai"` with a custom `base_url`. Only Claude uses its own provider (`claude`) because it has a different message format (tool_use blocks instead of tool_calls).
+
+**AWS Bedrock / Google Vertex:** These use proprietary auth (SigV4 / OAuth) that doesn't fit standard Bearer token auth. Use a proxy like [LiteLLM](https://github.com/BerriAI/litellm) to expose them as OpenAI-compatible endpoints:
+
+```bash
+# LiteLLM proxy for Bedrock
+pip install litellm
+litellm --model bedrock/anthropic.claude-3-sonnet-20240229-v1:0
+
+# Then point ContextCache at it
+"llm_provider": "openai",
+"llm_base_url": "http://localhost:4000/v1",
+"llm_api_key": "anything"
+```
+
+For **enterprise gateways** that need custom headers (API management platforms, internal proxies), use the `extra_headers` parameter in server-side LLM config or pass headers via the admin API.
+
 ---
 
 ## Enterprise Features
