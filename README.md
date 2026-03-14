@@ -1,5 +1,7 @@
 # ContextCache
 
+[![IdeaCred](https://ideacred.com/api/badge/spranab/contextcache)](https://ideacred.com/profile/spranab)
+
 **Skip 99% of tool tokens. TTFT stays flat at 200ms.**
 
 ContextCache is an open-source middleware that caches the KV states of tool definitions so they don't get recomputed on every request. Register your tools once, reuse the cached KV across all users, sessions, and requests.
