@@ -32,12 +32,6 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[project.urls]
-Homepage = "https://github.com/spranab/contextcache"
-Repository = "https://github.com/spranab/contextcache"
-"Bug Tracker" = "https://github.com/spranab/contextcache/issues"
-Paper = "https://doi.org/10.5281/zenodo.18795189"
-
 dependencies = [
     "requests>=2.31.0",
 ]
@@ -58,6 +52,12 @@ dev = [
     "pytest>=7.0",
     "httpx>=0.25.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/spranab/contextcache"
+Repository = "https://github.com/spranab/contextcache"
+"Bug Tracker" = "https://github.com/spranab/contextcache/issues"
+Paper = "https://doi.org/10.5281/zenodo.18795189"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
