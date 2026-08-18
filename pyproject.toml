@@ -5,13 +5,38 @@ build-backend = "setuptools.backends._legacy:_Backend"
 [project]
 name = "contextcache"
 version = "0.2.0"
-description = "KV cache routing for tool selection — 290x faster TTFT"
+description = "Persistent KV cache for LLM tool schemas — compile tool definitions once, reuse the cache across users and sessions, keep TTFT near 200ms at 50 tools"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.9"
 authors = [
-    {name = "ContextCache Contributors"},
+    {name = "Pranab Sarkar", email = "developer@pranab.co.in"},
 ]
+keywords = [
+    "llm", "kv-cache", "prompt-caching", "inference-optimization",
+    "tool-calling", "function-calling", "ai-agents", "transformers",
+    "ttft", "llm-inference", "caching",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.urls]
+Homepage = "https://github.com/spranab/contextcache"
+Repository = "https://github.com/spranab/contextcache"
+"Bug Tracker" = "https://github.com/spranab/contextcache/issues"
+Paper = "https://doi.org/10.5281/zenodo.18795189"
 
 dependencies = [
     "requests>=2.31.0",

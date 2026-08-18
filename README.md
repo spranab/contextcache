@@ -1,5 +1,7 @@
 # ContextCache
 
+[![PyPI](https://img.shields.io/pypi/v/contextcache)](https://pypi.org/project/contextcache/)
+[![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18795189-blue)](https://doi.org/10.5281/zenodo.18795189)
 [![IdeaCred](https://ideacred.com/api/badge/spranab/contextcache)](https://ideacred.com/profile/spranab)
 
 **Skip 99% of tool tokens. TTFT stays flat at 200ms.**
@@ -752,6 +754,20 @@ Paper PDF: [paper/main.pdf](paper/main.pdf)
   url={https://doi.org/10.5281/zenodo.18795189}
 }
 ```
+
+## Related projects
+
+Other agent infrastructure by the same author, all aimed at what an agent
+costs and remembers at runtime:
+
+- [tier](https://github.com/yantrikos/tier) — the other half of the tool-cost
+  problem: adapt which tools a model is shown to the model's size.
+- [yantrikdb](https://github.com/yantrikos/yantrikdb) — cognitive memory
+  engine for agents: temporal decay, contradiction detection, consolidation.
+- [yantrikdb-mcp](https://github.com/yantrikos/yantrikdb-mcp) — that memory as
+  an MCP server for Claude Code, Cursor and Windsurf.
+- [truenas-mcp](https://github.com/spranab/truenas-mcp) — 278 actions behind
+  one hierarchical MCP tool, the same token-budget idea applied to a NAS API.
 
 ## License
 
