@@ -1,7 +1,7 @@
 """ContextCache Python SDK — lightweight client for the routing API.
 
 Usage:
-    from contextcache import ContextCacheClient
+    from context_cache import ContextCacheClient
 
     client = ContextCacheClient("http://localhost:8421", api_key="your-key")
     client.register_tools("merchant", tools=[...])

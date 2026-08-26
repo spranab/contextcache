@@ -1,6 +1,5 @@
 # ContextCache
 
-[![PyPI](https://img.shields.io/pypi/v/contextcache)](https://pypi.org/project/contextcache/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.18795189-blue)](https://doi.org/10.5281/zenodo.18795189)
 [![IdeaCred](https://ideacred.com/api/badge/spranab/contextcache)](https://ideacred.com/profile/spranab)
 
@@ -43,12 +42,14 @@ Open http://localhost:8421 for the browser dashboard.
 
 ### Python SDK
 
+Not published to PyPI yet — install from the clone above:
+
 ```bash
-pip install contextcache
+pip install -e .
 ```
 
 ```python
-from contextcache import ContextCacheClient
+from context_cache import ContextCacheClient
 
 client = ContextCacheClient("http://localhost:8421", api_key="your-key")
 
