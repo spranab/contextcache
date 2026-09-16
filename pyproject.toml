@@ -7,7 +7,7 @@ name = "contextcache"
 version = "0.2.0"
 description = "Persistent KV cache for LLM tool schemas — compile tool definitions once, reuse the cache across users and sessions, keep TTFT near 200ms at 50 tools"
 readme = "README.md"
-license = "MIT"
+license = "CC-BY-4.0"
 requires-python = ">=3.9"
 authors = [
     {name = "Pranab Sarkar", email = "developer@pranab.co.in"},
